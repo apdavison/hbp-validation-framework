@@ -1792,11 +1792,17 @@ ModelCatalogApp.controller('ModelCatalogEditCtrl', ['$scope', '$rootScope', '$ht
         };
         $scope.saveImage = function() {
             if (JSON.stringify($scope.image) != undefined) {
-                $scope.model.models[0].append({
-                    'caption': $scope.image.caption,
-                    'url': $scope.image.url
-                })
-                $scope.image.model_id = $stateParams.uuid;
+                if ($scope.model.models[0].images) {
+                    $scope.model.models[0].images.append({
+                        'caption': $scope.image.caption,
+                        'url': $scope.image.url
+                    });
+                } else {
+                    $scope.model.models[0].images = [{
+                        'caption': $scope.image.caption,
+                        'url': $scope.image.url
+                    }];
+                }
                 $scope.saveModel()
                 $scope.reloadState();
             } else { alert("You need to add an url !") }
