@@ -1775,12 +1775,12 @@ ModelCatalogApp.controller('ModelCatalogEditCtrl', ['$scope', '$rootScope', '$ht
         };
 
         $scope.deleteImage = function(img) {
-            var image = img
-            ScientificModelImageRest.delete({ app_id: $scope.app_id, id: image.id }).$promise.then(
-                function(data) {
-                    alert('Image ' + img.id + ' has been deleted !');
-                    $scope.reloadState();
+            $scope.model.models[0].
+            $scope.model.models[0].images = $scope.model.models[0].images.filter(
+                function(value, index, arr){
+                    return value != img;
                 });
+            $scope.saveModel()
         };
         $scope.reloadState = function() {
             //to simplify testing
@@ -1810,14 +1810,6 @@ ModelCatalogApp.controller('ModelCatalogEditCtrl', ['$scope', '$rootScope', '$ht
         $scope.closeImagePanel = function() {
             $scope.image = {};
             $scope.addImage = false;
-        };
-        $scope.editImages = function() {
-            var parameters = $scope.model.models[0].images;
-            var a = ScientificModelImageRest.put({ app_id: $scope.app_id }, parameters).$promise.then(function(data) {
-                alert('Model images have been correctly edited');
-            }).catch(function(e) {
-                alert(e.data);
-            });
         };
         $scope.deleteModel = function() {
             switch (prompt("Are you sure you want to delete this model? (Yes/No)", "No")) {
