@@ -1792,16 +1792,13 @@ ModelCatalogApp.controller('ModelCatalogEditCtrl', ['$scope', '$rootScope', '$ht
         };
         $scope.saveImage = function() {
             if (JSON.stringify($scope.image) != undefined) {
+                $scope.model.models[0].append({
+                    'caption': $scope.image.caption,
+                    'url': $scope.image.url
+                })
                 $scope.image.model_id = $stateParams.uuid;
-
-                var parameters = JSON.stringify([$scope.image]);
-                ScientificModelImageRest.post({ app_id: $scope.app_id }, parameters).$promise.then(function(data) {
-                    $scope.addImage = false;
-                    alert('Image has been saved !');
-                    $scope.reloadState();
-                }).catch(function(e) {
-                    alert(e.data);
-                });
+                $scope.saveModel()
+                $scope.reloadState();
             } else { alert("You need to add an url !") }
         };
         $scope.closeImagePanel = function() {
