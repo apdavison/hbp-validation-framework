@@ -1,11 +1,13 @@
 Django>=1.9
 pytz
-django-sslserver  # dev only
-#social-auth-app-django
+#django-sslserver  # dev only
 python-social-auth
-markdown
--e packages/task-types-0.0.10
--e packages/bbp-services-0.0.15
--e packages/bbp-client-0.4.4
+django-markdown-deux
+django-jsonify
+django-cors-headers
+djangorestframework
+#-e packages/task-types-0.0.10
+#-e packages/bbp-services-0.0.15
+#-e packages/bbp-client-0.4.4
 -e packages/hbp-app-python-auth-0.1.5
--e packages/neural-activity-resource-master
+#-e packages/neural-activity-resource-master
