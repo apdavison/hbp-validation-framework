@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file validation_service/requirements.txt validation_service/requirements.in
 #
--e file:///Users/andrew/dev/validation/hbp-validation-framework/packages/hbp-app-python-auth-0.1.5
+-e packages/hbp-app-python-auth-0.1.5
 defusedxml==0.5.0         # via python3-openid
 django-cors-headers==2.5.2
 django-jsonify==0.3.0
