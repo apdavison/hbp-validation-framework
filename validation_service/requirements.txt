@@ -5,18 +5,18 @@
 #    pip-compile --output-file validation_service/requirements.txt validation_service/requirements.in
 #
 -e packages/hbp-app-python-auth-0.1.5
-defusedxml==0.5.0         # via python3-openid
-django-cors-headers==2.5.2
-django-jsonify==0.3.0
-django-markdown-deux==1.0.5
-django==2.1.7
-djangorestframework==3.9.2
-markdown2==2.3.7          # via django-markdown-deux
-oauthlib==2.0.1           # via python-social-auth, requests-oauthlib
-pyjwt==1.4.2              # via python-social-auth
-python-social-auth==0.2.21
-python3-openid==3.1.0     # via python-social-auth
-pytz==2016.10
-requests-oauthlib==0.7.0  # via python-social-auth
-requests==2.13.0          # via python-social-auth, requests-oauthlib
-six==1.10.0               # via python-social-auth
+#defusedxml ==0.5.0         # via python3-openid
+django-cors-headers #==2.5.2
+django-jsonify #==0.3.0
+django-markdown-deux #==1.0.5
+django #==2.1.7
+djangorestframework #==3.9.2
+#markdown2==2.3.7          # via django-markdown-deux
+#oauthlib==2.0.1           # via python-social-auth, requests-oauthlib
+#pyjwt==1.4.2              # via python-social-auth
+python-social-auth #==0.2.21
+#python3-openid==3.1.0     # via python-social-auth
+pytz #==2016.10
+#requests-oauthlib==0.7.0  # via python-social-auth
+#requests==2.13.0          # via python-social-auth, requests-oauthlib
+#six==1.10.0               # via python-social-auth

@@ -35,7 +35,7 @@ COPY model_validation_api /home/docker/model_validation_api
 WORKDIR /home/docker
 
 RUN pip3 install -r $SITEDIR/requirements.txt
-ENV PYTHONPATH  /home/docker:/home/docker/site:/usr/local/lib/python3.6/dist-packages:/usr/lib/python3.6/dist-packages
+ENV PYTHONPATH  /home/docker:/home/docker/site:/usr/local/lib/python3.5/dist-packages:/usr/lib/python3.5/dist-packages
 
 WORKDIR $SITEDIR
 RUN if [ -f $SITEDIR/db.sqlite3 ]; then rm $SITEDIR/db.sqlite3; fi
