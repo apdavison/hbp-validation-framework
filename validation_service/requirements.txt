@@ -14,8 +14,8 @@ djangorestframework #==3.9.2
 #markdown2==2.3.7          # via django-markdown-deux
 #oauthlib==2.0.1           # via python-social-auth, requests-oauthlib
 #pyjwt==1.4.2              # via python-social-auth
-python-social-auth #==0.2.21
-social-app-django
+#python-social-auth #==0.2.21
+social-auth-app-django
 #python3-openid==3.1.0     # via python-social-auth
 pytz #==2016.10
 #requests-oauthlib==0.7.0  # via python-social-auth
