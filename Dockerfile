@@ -7,25 +7,25 @@
 # To run the application:
 #   docker run -d -p 443 -v /etc/letsencrypt:/etc/letsencrypt hbp_validation_service
 
-FROM debian:jessie-slim
+FROM debian:stretch-slim
 
 MAINTAINER Andrew Davison <andrew.davison@unic.cnrs-gif.fr>
 
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update --fix-missing; apt-get -y -q install python-dev python-pip sqlite3 python-psycopg2 supervisor build-essential nginx-extras git
+RUN apt-get update --fix-missing; apt-get -y -q install python3-dev python3-pip sqlite3 python3-psycopg2 supervisor build-essential nginx-extras git
 RUN unset DEBIAN_FRONTEND
 
-RUN pip install --upgrade pip
-RUN pip install uwsgi
+RUN pip3 install --upgrade pip
+RUN pip3 install uwsgi
 
 RUN echo "" >> /var/log/django.log
 
 ENV SITEDIR /home/docker/site
 
 RUN git clone https://github.com/HumanBrainProject/pyxus.git pyxus_src
-RUN pip install -r pyxus_src/pyxus/requirements.txt; pip install pyxus_src/pyxus
+RUN pip3 install -r pyxus_src/pyxus/requirements.txt; pip3 install pyxus_src/pyxus
 RUN git clone https://github.com/apdavison/neural-activity-resource.git; cd neural-activity-resource; git checkout validation
-RUN pip install neural-activity-resource/client
+RUN pip3 install neural-activity-resource/client
 
 COPY packages /home/docker/packages
 COPY validation_service $SITEDIR
@@ -34,14 +34,14 @@ COPY model_validation_api /home/docker/model_validation_api
 
 WORKDIR /home/docker
 
-RUN pip install -r $SITEDIR/requirements.txt
-ENV PYTHONPATH  /home/docker:/home/docker/site:/usr/local/lib/python2.7/dist-packages:/usr/lib/python2.7/dist-packages
+RUN pip3 install -r $SITEDIR/requirements.txt
+ENV PYTHONPATH  /home/docker:/home/docker/site:/usr/local/lib/python3.6/dist-packages:/usr/lib/python3.6/dist-packages
 
 WORKDIR $SITEDIR
 RUN if [ -f $SITEDIR/db.sqlite3 ]; then rm $SITEDIR/db.sqlite3; fi
-RUN python manage.py check
-RUN python manage.py collectstatic --noinput
-RUN cd $SITEDIR/static; tar xf static.tar
+RUN python3 manage.py check
+RUN python3 manage.py collectstatic --noinput --verbosity 0
+#RUN cd $SITEDIR/static; tar xf static.tar
 
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 RUN rm /etc/nginx/sites-enabled/default
