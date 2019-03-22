@@ -80,7 +80,7 @@ class ValidationTestCode(models.Model):
     path = models.CharField(max_length=500, help_text="path to test class within Python code")
     timestamp = models.DateTimeField(auto_now_add=True, help_text="timestamp for this version of the code")
     test_definition = models.ForeignKey(ValidationTestDefinition, help_text="Validation test implemented by this code",
-                                        related_name="codes")
+                                        related_name="codes", on_delete=models.CASCADE)
 
     class Meta:
         verbose_name_plural = "validation test code"
@@ -112,7 +112,7 @@ class ScientificModel(models.Model):
     model_scope = models.CharField(max_length=100, blank=True, help_text="model scope: subcellular model, single cell, network...")
     abstraction_level = models.CharField(max_length=100, blank=True, help_text="model type: protein sturcture, system biology, spiking neurons...")
     private = models.BooleanField ( default= False ,help_text="privacy of the model: can be private (if true) or public (if false)")
-    app = models.ForeignKey(CollabParameters, related_name="collab_params")
+    app = models.ForeignKey(CollabParameters, related_name="collab_params", on_delete=models.CASCADE)
     code_format = models.CharField(max_length=100 ,blank=True, help_text=".py, .c, etc...") # to remove, moved to Instance
     alias = models.CharField(max_length=200, unique=True, blank=True, null=True, default=None,  help_text="alias of the model")
     creation_date = models.DateTimeField(auto_now_add=True, help_text="creation date of the model")
@@ -169,8 +169,8 @@ class ScientificModelImage(models.Model):
 @python_2_unicode_compatible
 class ValidationTestResult(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, )
-    model_version = models.ForeignKey(ScientificModelInstance)
-    test_code = models.ForeignKey(ValidationTestCode)
+    model_version = models.ForeignKey(ScientificModelInstance, on_delete=models.CASCADE)
+    test_code = models.ForeignKey(ValidationTestCode, on_delete=models.CASCADE)
     results_storage = models.TextField(blank=True, help_text="Location of data files produced by the test run")  # or store locations of individual files?
     score = models.FloatField(help_text="A numerical measure of the difference between model and experiment")  # name this 'score'? like sciunit
     # should result be a Quantity?
