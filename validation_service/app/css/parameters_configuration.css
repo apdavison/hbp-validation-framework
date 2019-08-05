@@ -1,8 +1,14 @@
-#tableTest {
-    border: 2px solid lightgrey;
-    background-color: white;
+.panel {
+    height: 335px;
 }
 
-#tab_title {
-    background-color: lightblue;
+.params-list-group-item:hover  {
+    background-color: #f5f5f5;
+}
+
+.params-list-group {
+    height: 235px;
+    overflow: auto;
+    padding: 0 !important;
+    margin: 0 !important;
 }
