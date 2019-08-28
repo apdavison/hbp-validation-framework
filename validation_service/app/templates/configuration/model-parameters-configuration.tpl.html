@@ -2,11 +2,11 @@
 <div>
     <div ng-controller="ParametersConfigurationCtrl">
 
-        <div>
+        <div class="row">
         <div class="col-lg-4">
 	<div class="panel panel-primary">
-            <div class="panel-heading">
-                Model scope<label style="float:right;"><input type="checkbox" ng-model="select_all['model_scope']" ng-change="select_all_fn('model_scope')" />Select All</label>
+            <div class="panel-heading checkbox">
+                Model scope<label><input type="checkbox" ng-model="select_all['model_scope']" ng-change="select_all_fn('model_scope')" />Select All</label>
             </div>
             <div class="panel-body">
                 <div class="list-group list-group-border params-list-group checkbox">
@@ -20,8 +20,8 @@
 
         <div class="col-lg-4">
 	<div class="panel panel-primary">
-            <div class="panel-heading">
-                Abstraction level<label style="float:right;"><input type="checkbox" ng-model="select_all['abstraction_level']" ng-change="select_all_fn('abstraction_level')" />Select All</label>
+            <div class="panel-heading checkbox">
+                Abstraction level<label><input type="checkbox" ng-model="select_all['abstraction_level']" ng-change="select_all_fn('abstraction_level')" />Select All</label>
             </div>
             <div class="panel-body">
                 <div class="list-group list-group-border params-list-group checkbox">
@@ -35,8 +35,8 @@
 
         <div class="col-lg-4">
 	<div class="panel panel-primary">
-            <div class="panel-heading">
-                Organization<label style="float:right;"><input type="checkbox" ng-model="select_all['organization']" ng-change="select_all_fn('organization')" />Select All</label>
+            <div class="panel-heading checkbox">
+                Organization<label><input type="checkbox" ng-model="select_all['organization']" ng-change="select_all_fn('organization')" />Select All</label>
             </div>
             <div class="panel-body">
                 <div class="list-group list-group-border params-list-group checkbox">
@@ -47,11 +47,13 @@
             </div>
         </div>
         </div>
+        </div>
 
+        <div class="row">
         <div class="col-lg-4">
 	<div class="panel panel-primary">
-            <div class="panel-heading">
-                Species<label style="float:right;"><input type="checkbox" ng-model="select_all['species']" ng-change="select_all_fn('species')" />Select All</label>
+            <div class="panel-heading checkbox">
+                Species<label><input type="checkbox" ng-model="select_all['species']" ng-change="select_all_fn('species')" />Select All</label>
             </div>
             <div class="panel-body">
                 <div class="list-group list-group-border params-list-group checkbox">
@@ -65,8 +67,8 @@
 
         <div class="col-lg-4">
 	<div class="panel panel-primary">
-            <div class="panel-heading">
-                Brain region<label style="float:right;"><input type="checkbox" ng-model="select_all['brain_region']" ng-change="select_all_fn('brain_region')" />Select All</label>
+            <div class="panel-heading checkbox">
+                Brain region<label><input type="checkbox" ng-model="select_all['brain_region']" ng-change="select_all_fn('brain_region')" />Select All</label>
             </div>
             <div class="panel-body">
                 <div class="list-group list-group-border params-list-group checkbox">
@@ -80,8 +82,8 @@
 
         <div class="col-lg-4">
 	<div class="panel panel-primary">
-            <div class="panel-heading">
-                Cell type<label style="float:right;"><input type="checkbox" ng-model="select_all['cell_type']" ng-change="select_all_fn('cell_type')" />Select All</label>
+            <div class="panel-heading checkbox">
+                Cell type<label><input type="checkbox" ng-model="select_all['cell_type']" ng-change="select_all_fn('cell_type')" />Select All</label>
             </div>
             <div class="panel-body">
                 <div class="list-group list-group-border params-list-group checkbox">
@@ -90,6 +92,7 @@
                     </label>
                 </div>
             </div>
+        </div>
         </div>
         </div>
 	

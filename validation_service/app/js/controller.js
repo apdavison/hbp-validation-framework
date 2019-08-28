@@ -1312,11 +1312,18 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
         $scope.itemsPerPages = 20;
         $scope.models = [];
         $scope.total_models = 0;
+        
+        $scope.order_by = '-creation_date';
+        $scope.collab_ids_to_select = new Array();
 
-        $scope._change_empty_organization_string = function(models) {
+        $scope._change_empty_model_parameters = function(models) {
             for (var model in models.models) {
                 if (models.models[model].organization == "<<empty>>") {
                     models.models[model].organization = "";
+                }
+                // do not order the empty aliases after 'n' letter
+	        if (models.models[model].alias == null) {
+                    models.models[model].alias = "";
                 }
             }
             return models
@@ -1325,13 +1332,12 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
         $scope._get_collab_and_app_ids_from_models = function() {
             for (var i in $scope.models.models) {
                 if ($scope.models.models[i].app != null) {
-                    if ($scope.collab_ids_to_select.indexOf($scope.models.models[i].app.collab_id.toString()) == -1) {
-                        $scope.collab_ids_to_select.push($scope.models.models[i].app.collab_id.toString());
-                        $scope.collab_ids_to_select = $scope.collab_ids_to_select.sort();
+                    if ($scope.collab_ids_to_select.indexOf(Number($scope.models.models[i].app.collab_id)) == -1) {
+                        $scope.collab_ids_to_select.push(Number($scope.models.models[i].app.collab_id));
                     }
                 }
             }
-            $scope.$apply();
+            $scope.collab_ids_to_select.sort(function(a, b){return a - b});
         }
 
         $scope.isloading = function() {
@@ -1343,9 +1349,159 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
             }
         }
 
+        // JZ: critical part
+        $scope.organizationInnerComparator = function(value1, value2) {
+            var result = 0;
+            if (value1.substr(0,6) == 'HBP-SP' && value2.substr(0,6) == 'HBP-SP') {                
+                return Number(value1.substr(6,2)) < Number(value2.substr(6,2)) ? -1 : 1;
+            }
+            // Compare strings case-insensitively
+            value1 = value1.toLowerCase();
+            value2 = value2.toLowerCase();
+            
+            if (value1 !== value2) {
+                result = value1 < value2 ? -1 : 1;
+            }  
+
+            return result;
+        };
+
+        $scope.organizationComparator = function(v1, v2) {
+            // JZ copied from angular.js -- private defaultCompare function
+            var result = 0;
+            var type1 = v1.type;
+            var type2 = v2.type;
+
+            if (type1 === type2) {
+                var value1 = v1.value;
+                var value2 = v2.value;
+                if (type1 === 'string') {
+                    return $scope.organizationInnerComparator(value1, value2);
+                } else if (type1 === 'object') {
+           // For basic objects, use the position of the object
+           // in the collection instead of the value
+                   if (isObject(value1)) value1 = v1.index;
+                   if (isObject(value2)) value2 = v2.index;
+                }
+
+                if (value1 !== value2) {
+                    result = value1 < value2 ? -1 : 1;
+                }  
+
+            } else {
+                result = type1 < type2 ? -1 : 1;
+            }
+            return result;
+        };
+
+        $scope.switchSort = function(order_by)
+        {
+            var minus = false;
+            if ($scope.order_by.charAt(0) == '-') {
+                minus = true;
+                $scope.order_by = $scope.order_by.replace('-', '');
+            }            
+            if ($scope.order_by == order_by && minus == false)
+            {
+                $scope.order_by = '-' + $scope.order_by;
+            }
+            else {
+                $scope.order_by = order_by;
+            }
+        }
+
+        $scope.onBeforeShow_select = function(select) {
+            if (typeof select.$scope.$isDisabled === 'undefined') {
+               select.$scope.$isDisabled = []; // not initialized doesn't matter
+            }
+
+            if (typeof select.$scope.$selectCustom === 'undefined') {            
+                select.$scope.$selectCustom = function(index) 
+                {
+                    var mutex_array = ['interneuron', 'medium spiny neuron', 'network', 'subcellular', 'population modelling', 'spiking neurons', 'systems biology'];
+                    var value = select.$scope.$matches[index].value; 
+                    for (var index_mutex in mutex_array) {
+                    if (value == mutex_array[index_mutex]) 
+                    {
+                    for (var index_other in select.$scope.$matches) {
+                        if (index_other != index && select.$scope.$matches[index_other].value.indexOf(mutex_array[index_mutex]) != -1) 
+                        {
+                            if (select.$scope.$isActive(index)) // will be active, click happens after that
+                            {  // TODO check on index_other activity
+                                select.$scope.$isDisabled[index_other] = false;
+                            }
+                            else { 
+                                select.$scope.$isDisabled[index_other] = true;
+                            }
+                        }
+                    }
+                    } else if (value.indexOf(mutex_array[index_mutex]) != -1) // contains mutex as its part
+                    {
+                        // disable mutex itself
+                        var index_top;
+                        var index_other;
+
+                        for (index_top = 0; index_top < select.$scope.$matches.length; index_top++) {
+                           if (select.$scope.$matches[index_top].value == mutex_array[index_mutex]) 
+                           {
+                               var toggle_top = true;
+                               for (index_other = 0; index_other < select.$scope.$matches.length; index_other++) {
+                                   if (   index_other != index
+                                       && index_other != index_top
+                                       && select.$scope.$matches[index_other].value.indexOf(mutex_array[index_mutex]) != -1
+                                       && select.$scope.$isActive(index_other))
+                                   {
+                                       toggle_top = false;
+                                       break;
+                                   }
+                               }
+                               if (toggle_top == true)
+                               {
+                                   if (select.$scope.$isActive(index)) {
+                                       select.$scope.$isDisabled[index_top] = false;
+                                   }
+                     	           else {
+                                       select.$scope.$isDisabled[index_top] = true;
+                                   }
+                               }
+                           }
+                        }
+                    }
+                    }
+                    select.hide();
+                    select.show();
+                    select.$scope.$select(index, 'click');
+                };
+            } 
+
+            if (typeof select.$scope.$selectAllCustom === 'undefined') {            
+                select.$scope.$selectAllCustom = function() {
+                    for (var i = 0; i < select.$scope.$matches.length; i++) {
+                        if (!select.$scope.$isActive(i) && !select.$scope.$isDisabled[i]) {
+                            select.$scope.$selectCustom(i);
+                        }
+                    }
+                };
+            }
+
+            if (typeof select.$scope.$selectNoneCustom === 'undefined') {            
+                select.$scope.$selectNoneCustom = function() {
+                    for (var i = 0; i < select.$scope.$matches.length; i++) {
+                        if (select.$scope.$isActive(i) && !select.$scope.$isDisabled[i]) {
+                            select.$scope.$selectCustom(i);
+                        }
+                    }
+                };
+            }
+      };
+
+//        $scope.onSelect_cell_type = function(value, index, select) {
+
         $scope.$on('models_updated', function(event, models) {
-            $scope.models = $scope._change_empty_organization_string(models);
-            $scope.collab_ids_to_select = $scope._get_collab_and_app_ids_from_models();
+            $scope.models = $scope._change_empty_model_parameters(models);
+            $scope._get_collab_and_app_ids_from_models();
+// JZ test
+//            $scope.$apply();
         });
 
         Context.setService().then(function() {
@@ -1364,8 +1520,8 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
                     $scope.nb_pages = data.total_nb_pages;
                     $scope.maxSize = 5;
                     $scope.current_page = 1;
-                    $scope.models = $scope._change_empty_organization_string(data);
-
+                    // to make the models on the front page immediately visible and not need to wait for models_updated event
+                    $scope.models = $scope._change_empty_model_parameters(data);
                     $scope.$apply();
 
                     $('#status').fadeOut(); // will first fade out the loading animation 
@@ -1374,7 +1530,7 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
 
                     var status = DataHandler.getCurrentStatus();
                     if (status != "up_to_date") {
-                        DataHandler.loadModelsByPage($scope.app_id, $scope.nb_pages);
+                       DataHandler.loadModelsByPage($scope.app_id, $scope.nb_pages);
                     }
                 });
 
@@ -1382,7 +1538,6 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
 
 
                 CollabParameters.setService($scope.ctx).then(function() {
-
                     $scope.model_privacy = [{ value: "true", name: "private" }, { value: "false", name: "public" }] //[{ "name": "private", "value": "true" }, { "name": "public", "value": "false" }];
 
                     $scope.collab_species = CollabParameters.getParametersOrDefaultByType("species");
@@ -1391,8 +1546,9 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
                     $scope.collab_model_scope = CollabParameters.getParametersOrDefaultByType("model_scope");
                     $scope.collab_abstraction_level = CollabParameters.getParametersOrDefaultByType("abstraction_level");
                     $scope.collab_organization = CollabParameters.getParametersOrDefaultByType("organization");
-                    $scope.collab_ids_to_select = new Array();
-                    $scope._get_collab_and_app_ids_from_models();
+                    // reorder organizations HBP-SP nummerically
+                    $scope.collab_organization.sort($scope.organizationInnerComparator);
+
                     // $scope.selected_collab = $scope.collab_ids_to_select //initialize 
 
 
@@ -1950,7 +2106,6 @@ ParametersConfigurationApp.controller('ParametersConfigurationCtrl', ['$scope', 
         };
 
 
-
         $scope.select_all_fn = function(name) {
             var item;
             for (var key in $scope.checkboxes[name]) 
@@ -2155,15 +2310,17 @@ ParametersConfigurationApp.controller('ParametersConfigurationCtrl', ['$scope', 
 ]);
 
 
-ParametersConfigurationApp.controller('ParametersConfigurationRedirectCtrl', ['$scope', '$rootScope', '$http', '$location', 'CollabParameters', 'AuthorizedCollabParameterRest', 'Context',
-    function($scope, $rootScope, $http, $location, CollabParameters, AuthorizedCollabParameterRest, Context) {
+ParametersConfigurationApp.controller('ParametersConfigurationRedirectCtrl', ['$state', '$scope', '$rootScope', '$http', '$location', 'CollabParameters', 'AuthorizedCollabParameterRest', 'Context',
+    function($state, $scope, $rootScope, $http, $location, CollabParameters, AuthorizedCollabParameterRest, Context) {
 
         $scope.init = function() {
             $scope.app_type = document.getElementById("app").getAttribute("value");
             if ($scope.app_type == "model_catalog") {
-                $location.path('/modelparametersconfiguration');
+//                $location.path('/modelparametersconfiguration');
+		$state.go('ModelParametersConfiguration');
             } else if ($scope.app_type == "validation_app") {
-                $location.path('/validationparametersconfiguration');
+//                $location.path('/validationparametersconfiguration');
+		$state.go('ValidationParametersConfiguration');
             }
         }
 

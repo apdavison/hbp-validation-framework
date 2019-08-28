@@ -360,3 +360,37 @@
     .expanded-tr {
         background-color: #f4f4f4
     }
+
+/* Hiding a tick in the dropdown menus and arrows in clickable headings */
+.dropdown-menu .ng-hide:not(.ng-hide-animate),
+.main-table th .ng-hide:not(.ng-hide-animate) {
+    display: block!important;
+    visibility: hidden!important;
+}
+
+.main-table {
+    table-layout: fixed;
+    min-width: 1348px;
+}
+
+.main-table th{
+    font-size: 13px;
+    text-align: center;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.main-table th>button {
+    padding: 0;
+    width: 17px;
+    overflow: hidden;
+    margin-right: 3px;
+/*    width: 100%;*/
+}
+.main-table .collab-id {
+    text-align: right;
+}
+
+.disabledOption {
+    text-decoration: line-through;
+}
