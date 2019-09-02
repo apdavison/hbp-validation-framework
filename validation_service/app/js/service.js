@@ -28,8 +28,7 @@ ContextServices.service('Context', ['$rootScope', '$location', 'AppIDRest', 'Col
         var modelCatalog_goToHomeView = function() {
             clearState();
             setTimeout(function() {
-                // $location.path('/model-catalog/');
-
+              //  $location.path('/model-catalog/');
             }, 300);
         };
         var newTab_goToValidationTest = function(test_id) {
@@ -485,8 +484,8 @@ DataHandlerServices.service('DataHandler', ['$rootScope', 'ScientificModelRest',
 
             for (i; i <= nb_pages; i++) {
                 if (pages_loaded.indexOf(i) == -1) {
-                    pages_loaded.push(i);
                     ScientificModelRest.get({ app_id: app_id, page: i }).$promise.then(function(new_models) {
+                        pages_loaded.push(i);
                         models.data.models = models.data.models.concat(new_models.models);
                         models.data.models = models.data.models.sort(_sort_array_by_timestamp_desc)
 
@@ -749,17 +748,13 @@ ParametersConfigurationServices.service('CollabParameters', ['$rootScope', 'Coll
 
         var setService = function(ctx_param) {
             return new Promise(function(resolve, reject) {
-
                 if (default_parameters == undefined) {
-
                     build_formated_default_parameters().then(function() {
-
                         set_parameters().then(function() {
                             resolve(parameters)
                         });
                     });
                 } else {
-
                     param = set_parameters().then(function() {
                         resolve(parameters)
                     });
@@ -771,11 +766,8 @@ ParametersConfigurationServices.service('CollabParameters', ['$rootScope', 'Coll
             return new Promise(function(resolve, reject) {
                 if (typeof(parameters) == "undefined") {
                     var app_id = Context.getAppID();
-
                     parameters = CollabParameterRest.get({ app_id: app_id }); //need to get collab number
-
                     parameters.$promise.then(function() {
-
                         if (parameters.param.length == 0) {
                             post = _postInitCollab();
                             post.$promise.then(function() {

@@ -1410,46 +1410,56 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
             }
         }
 
-        $scope.onBeforeShow_select = function(select) {
+        $scope.onBeforeShow_select = function(select) 
+        {
             if (typeof select.$scope.$isDisabled === 'undefined') {
-               select.$scope.$isDisabled = []; // not initialized doesn't matter
+               select.$scope.$isDisabled = []; 
+            }
+            if (typeof select.$scope.$localActive === 'undefined') {
+               select.$scope.$localActive = []; 
             }
 
             if (typeof select.$scope.$selectCustom === 'undefined') {            
-                select.$scope.$selectCustom = function(index) 
+                select.$scope.$selectCustom = function(index, selectScope) 
                 {
-                    var mutex_array = ['interneuron', 'medium spiny neuron', 'network', 'subcellular', 'population modelling', 'spiking neurons', 'systems biology'];
-                    var value = select.$scope.$matches[index].value; 
+                    var mutex_array = ['interneuron', 'pyramidal cell', 'medium spiny neuron', 'network', 'subcellular', 'population modelling', 'spiking neurons', 'systems biology'];
+                    var value = selectScope.$matches[index].value; 
+                    if (selectScope.$localActive.indexOf(index) == -1) {
+                        selectScope.$localActive.push(index); // add
+                    }
+                    else {
+                        selectScope.$localActive.splice(selectScope.$localActive.indexOf(index), 1); // remove
+                    }
                     for (var index_mutex in mutex_array) {
                     if (value == mutex_array[index_mutex]) 
                     {
-                    for (var index_other in select.$scope.$matches) {
-                        if (index_other != index && select.$scope.$matches[index_other].value.indexOf(mutex_array[index_mutex]) != -1) 
+                    for (var index_other in selectScope.$matches) {
+                        if (index_other != index && selectScope.$matches[index_other].value.indexOf(mutex_array[index_mutex]) != -1) 
                         {
-                            if (select.$scope.$isActive(index)) // will be active, click happens after that
-                            {  // TODO check on index_other activity
-                                select.$scope.$isDisabled[index_other] = false;
+                            if (selectScope.$localActive.indexOf(index) == -1) // deselcted
+                            {  
+                                selectScope.$isDisabled[index_other] = false;
                             }
                             else { 
-                                select.$scope.$isDisabled[index_other] = true;
+                                selectScope.$isDisabled[index_other] = true;
                             }
                         }
                     }
                     } else if (value.indexOf(mutex_array[index_mutex]) != -1) // contains mutex as its part
                     {
-                        // disable mutex itself
-                        var index_top;
+                        var index_top; // index of the line with mutex
                         var index_other;
+                        var toggle_top = true;
 
-                        for (index_top = 0; index_top < select.$scope.$matches.length; index_top++) {
-                           if (select.$scope.$matches[index_top].value == mutex_array[index_mutex]) 
+                        for (index_top = 0; index_top < selectScope.$matches.length; index_top++) {
+                           if (selectScope.$matches[index_top].value == mutex_array[index_mutex]) 
                            {
-                               var toggle_top = true;
-                               for (index_other = 0; index_other < select.$scope.$matches.length; index_other++) {
+                               toggle_top = true;
+                               for (index_other = 0; index_other < selectScope.$matches.length; index_other++) {
                                    if (   index_other != index
                                        && index_other != index_top
-                                       && select.$scope.$matches[index_other].value.indexOf(mutex_array[index_mutex]) != -1
-                                       && select.$scope.$isActive(index_other))
+                                       && selectScope.$matches[index_other].value.indexOf(mutex_array[index_mutex]) != -1
+                                       && selectScope.$localActive.indexOf(index_other) != -1)
                                    {
                                        toggle_top = false;
                                        break;
@@ -1457,42 +1467,49 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
                                }
                                if (toggle_top == true)
                                {
-                                   if (select.$scope.$isActive(index)) {
-                                       select.$scope.$isDisabled[index_top] = false;
+                                   if (selectScope.$localActive.indexOf(index) == -1) {
+                                       selectScope.$isDisabled[index_top] = false;
                                    }
                      	           else {
-                                       select.$scope.$isDisabled[index_top] = true;
+                                       selectScope.$isDisabled[index_top] = true;
                                    }
                                }
                            }
                         }
                     }
                     }
-                    select.hide();
-                    select.show();
-                    select.$scope.$select(index, 'click');
+                    selectScope.$select(index, 'click');
                 };
             } 
 
-            if (typeof select.$scope.$selectAllCustom === 'undefined') {            
-                select.$scope.$selectAllCustom = function() {
-                    for (var i = 0; i < select.$scope.$matches.length; i++) {
-                        if (!select.$scope.$isActive(i) && !select.$scope.$isDisabled[i]) {
-                            select.$scope.$selectCustom(i);
+            if (typeof select.$scope.$selectNoneCustom === 'undefined') {            
+                select.$scope.$selectNoneCustom = function(selectScope) {
+                    for (var i = 0; i < selectScope.$matches.length; i++) {
+                        if (selectScope.$localActive.indexOf(i) != -1 && !selectScope.$isDisabled[i]) {
+                            selectScope.$selectCustom(i, selectScope);
                         }
                     }
                 };
             }
 
-            if (typeof select.$scope.$selectNoneCustom === 'undefined') {            
-                select.$scope.$selectNoneCustom = function() {
-                    for (var i = 0; i < select.$scope.$matches.length; i++) {
-                        if (select.$scope.$isActive(i) && !select.$scope.$isDisabled[i]) {
-                            select.$scope.$selectCustom(i);
+            if (typeof select.$scope.$selectAllCustom === 'undefined') {            
+                select.$scope.$selectAllCustom = function(selectScope) {
+                    selectScope.$selectNoneCustom(selectScope);
+                    var mutex_array = ['interneuron', 'pyramidal cell', 'medium spiny neuron', 'network', 'subcellular', 'population modelling', 'spiking neurons', 'systems biology'];
+                    var i = 0;
+                    for (i = 0; i < selectScope.$matches.length; i++) {
+                        if (mutex_array.indexOf(selectScope.$matches[i].value) > -1) {
+                            selectScope.$selectCustom(i, selectScope);
+                        }
+                    }
+                    for (i = 0; i < selectScope.$matches.length; i++) {
+                        if (selectScope.$localActive.indexOf(i) == -1 && !selectScope.$isDisabled[i]) {
+                            selectScope.$selectCustom(i, selectScope);
                         }
                     }
                 };
             }
+
       };
 
 //        $scope.onSelect_cell_type = function(value, index, select) {
@@ -1515,27 +1532,7 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
             };
             if (Context.getState() == "" || Context.getState() == undefined || Context.getState() == "n") {
 
-                DataHandler.loadModels({ app_id: $scope.app_id, page: 1 }).then(function(data) {
-                    $scope.total_models = data.total_models;
-                    $scope.nb_pages = data.total_nb_pages;
-                    $scope.maxSize = 5;
-                    $scope.current_page = 1;
-                    // to make the models on the front page immediately visible and not need to wait for models_updated event
-                    $scope.models = $scope._change_empty_model_parameters(data);
-                    $scope.$apply();
-
-                    $('#status').fadeOut(); // will first fade out the loading animation 
-                    $('#preloader').delay(350).fadeOut('slow'); // will fade out the white DIV that covers the website. 
-                    $('body').delay(350).css({ 'overflow': 'visible' });
-
-                    var status = DataHandler.getCurrentStatus();
-                    if (status != "up_to_date") {
-                       DataHandler.loadModelsByPage($scope.app_id, $scope.nb_pages);
-                    }
-                });
-
                 Context.sendState("model", "n");
-
 
                 CollabParameters.setService($scope.ctx).then(function() {
                     $scope.model_privacy = [{ value: "true", name: "private" }, { value: "false", name: "public" }] //[{ "name": "private", "value": "true" }, { "name": "public", "value": "false" }];
@@ -1550,14 +1547,38 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
                     $scope.collab_organization.sort($scope.organizationInnerComparator);
 
                     // $scope.selected_collab = $scope.collab_ids_to_select //initialize 
-
-
+                        
                     $scope.is_collab_member = false;
                     $scope.is_collab_member = IsCollabMemberOrAdminRest.get({ app_id: $scope.app_id, });
                     $scope.is_collab_member.$promise.then(function() {
+
                         $scope.is_collab_member = $scope.is_collab_member.is_member;
+
+                        // if this function were outside promise, it could block the other two promises due to race condition
+                        DataHandler.loadModels({ app_id: $scope.app_id, page: 1 }).then(function(data) {
+
+                            $scope.total_models = data.total_models;
+                            $scope.nb_pages = data.total_nb_pages;
+                            $scope.maxSize = 5;
+                            $scope.current_page = 1;
+                            // to make the models on the front page immediately visible and not need to wait for models_updated event
+                            $scope.models = $scope._change_empty_model_parameters(data);
+                            $scope.$apply();
+
+                            $('#status').fadeOut(); // will first fade out the loading animation 
+                            $('#preloader').delay(350).fadeOut('slow'); // will fade out the white DIV that covers the website. 
+                            $('body').delay(350).css({ 'overflow': 'visible' });
+
+                            var status = DataHandler.getCurrentStatus();
+                            if (status != "up_to_date") {
+                                DataHandler.loadModelsByPage($scope.app_id, $scope.nb_pages);
+                            }
+                        });
+
                     });
                 });
+
+
             } else {
                 var model_id = Context.getState();
                 Context.modelCatalog_goToModelDetailView(model_id);

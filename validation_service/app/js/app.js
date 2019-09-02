@@ -3,7 +3,7 @@
 (function() {
     if (!window.env || window.env.name != 'envServices') {
 
-        window.base_url = 'https://127.0.0.1:8000/';
+        window.base_url = 'https://127.0.0.1:8013/';
         // window.base_url = '';
         //window.base_url = 'https://validation-dev.brainsimulation.eu:443/';
         // window.base_url = 'https://138.197.190.105:443/';
@@ -21,7 +21,7 @@
 
                     // angular-strap hack to check for disabled options in menus
                     angular.module('mgcrea.ngStrap.select').run([ '$templateCache', function($templateCache) {
-                        $templateCache.put('select/select.tpl.html', '<ul tabindex="-1" class="select dropdown-menu" ng-show="$isVisible()" role="select"><li ng-if="$showAllNoneButtons"><div class="btn-group" style="margin-bottom: 5px; margin-left: 5px"><button type="button" class="btn btn-default btn-xs" ng-click="$selectAllCustom()">{{$allText}}</button> <button type="button" class="btn btn-default btn-xs" ng-click="$selectNoneCustom()">{{$noneText}}</button></div></li><li role="presentation" ng-repeat="match in $matches" ng-class="{active: $isActive($index), disabledOption: $isDisabled[$index]}"><a style="cursor: default" role="menuitem" tabindex="-1" ng-click="!$isDisabled[$index] && $selectCustom($index)"><i class="{{$iconCheckmark}} pull-right" ng-show="$isMultiple && $isActive($index)"></i> <span ng-bind="match.label"></span></a></li></ul>');
+                        $templateCache.put('select/select.tpl.html', '<ul tabindex="-1" class="select dropdown-menu" ng-show="$isVisible()" role="select"><li ng-if="$showAllNoneButtons"><div class="btn-group" style="margin-bottom: 5px; margin-left: 5px"><button type="button" class="btn btn-default btn-xs" ng-click="$selectAllCustom(this)">{{$allText}}</button> <button type="button" class="btn btn-default btn-xs" ng-click="$selectNoneCustom(this)">{{$noneText}}</button></div></li><li role="presentation" ng-repeat="match in $matches" ng-class="{active: $isActive($index), disabledOption: $isDisabled[$index]}"><a style="cursor: default" role="menuitem" tabindex="-1" ng-click="!$isDisabled[$index] && $selectCustom($index, this)"><i class="{{$iconCheckmark}} pull-right" ng-show="$isMultiple && $isActive($index)"></i> <span ng-bind="match.label"></span></a></li></ul>');
                     } ]);
 
                     angular.bootstrap(document.getElementById("validation-app"), ['testApp']);
