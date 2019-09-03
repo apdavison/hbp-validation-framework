@@ -1430,6 +1430,12 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
                     else {
                         selectScope.$localActive.splice(selectScope.$localActive.indexOf(index), 1); // remove
                     }
+                    // COLLAB_ID is number
+                    if (typeof selectScope.$matches[0].value === 'number') {
+                        selectScope.$select(index, 'click');
+                        return;
+                    }
+                    // check whether the currently selected item has duplicates
                     for (var index_mutex in mutex_array) {
                     if (value == mutex_array[index_mutex]) 
                     {

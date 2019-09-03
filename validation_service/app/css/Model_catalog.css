@@ -385,8 +385,24 @@
     width: 17px;
     overflow: hidden;
     margin-right: 3px;
-/*    width: 100%;*/
 }
+
+.main-table .modelName {
+    display: block; 
+    overflow-x: auto;
+}
+
+.main-table .scrollColumn {
+    display: block; 
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.main-table .glyphicon {
+    display: inline; 
+    padding-right: 5px;
+}
+
 .main-table .collab-id {
     text-align: right;
 }

@@ -60,7 +60,7 @@ ContextServices.service('Context', ['$rootScope', '$location', 'AppIDRest', 'Col
                 window.open(url, '_blank')
             })
         }
-        var goToModelDetailView = function(evt, model_id, app_type) {
+        var goToModelDetailViewClick = function(evt, model_id, app_type) {
             switch (evt.which) {
                 case 1:
                     if (app_type == 'validation') {
@@ -68,9 +68,11 @@ ContextServices.service('Context', ['$rootScope', '$location', 'AppIDRest', 'Col
                     } else {
                         modelCatalog_goToModelDetailView(model_id)
                     }
-
                     break;
-
+            }
+        }
+        var goToModelDetailViewMouseDown = function(evt, model_id, app_type) {
+            switch (evt.which) {
                 case 3:
                     // this is right click
                     newTab_goToModelCatalogModel(model_id, app_type)
@@ -408,7 +410,8 @@ ContextServices.service('Context', ['$rootScope', '$location', 'AppIDRest', 'Col
             getExternal: getExternal,
             getStateType: getStateType,
             getCurrentLocationSearch: getCurrentLocationSearch,
-            goToModelDetailView: goToModelDetailView,
+            goToModelDetailViewClick: goToModelDetailViewClick,
+            goToModelDetailViewMouseDown: goToModelDetailViewMouseDown,
             goToTestDetailView: goToTestDetailView,
             goToValidationModelView: goToValidationModelView,
             goToResultDetailView: goToResultDetailView,
