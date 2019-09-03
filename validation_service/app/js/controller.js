@@ -65,8 +65,8 @@ testApp.controller('HomeCtrl', ['$scope', '$rootScope', '$http', '$location', "S
                         $scope.models = data;
                         $scope.$apply();
 
-                        $('#status').fadeOut(); // will first fade out the loading animation 
-                        $('#preloader-models').delay(350).fadeOut('slow'); // will fade out the white DIV that covers the website. 
+                        $('#status').fadeOut(); // will first fade out the loading animation
+                        $('#preloader-models').delay(350).fadeOut('slow'); // will fade out the white DIV that covers the website.
                         $('#models-panel').delay(350).css({ 'overflow': 'visible' });
 
                         $scope.collab_ids_to_select = new Array();
@@ -82,8 +82,8 @@ testApp.controller('HomeCtrl', ['$scope', '$rootScope', '$http', '$location', "S
                         $scope.tests = data;
                         $scope.$apply()
 
-                        $('#status-tests').fadeOut(); // will first fade out the loading animation 
-                        $('#preloader-tests').delay(350).fadeOut('slow'); // will fade out the white DIV that covers the website. 
+                        $('#status-tests').fadeOut(); // will first fade out the loading animation
+                        $('#preloader-tests').delay(350).fadeOut('slow'); // will fade out the white DIV that covers the website.
                         $('#tests-panel').delay(350).css({ 'overflow': 'visible' });
 
                     });
@@ -119,7 +119,7 @@ testApp.controller('ValTestCtrl', ['$scope', '$rootScope', '$http', '$location',
             var ctx = Context.getCtx();
             var app_id = Context.getAppID();
 
-            DataHandler.loadModels({ app_id: $scope.app_id }).then(function(data) {
+            DataHandler.loadModels({ app_id: app_id }).then(function(data) {
                 $scope.models = data;
                 $scope.$apply();
             });
@@ -166,6 +166,14 @@ testApp.controller('ValModelDetailCtrl', ['$scope', '$rootScope', '$http', '$loc
                 return false;
             }
             return true;
+        }
+
+        $scope.formatAuthors = function(authors) {
+            var full_names = [];
+            authors.forEach(function(auth) {
+                full_names.push(auth.given_name + " " + auth.family_name)
+            });
+            return full_names.join(", ")
         }
 
         $scope.init_checkbox_latest_versions = function() {
@@ -347,6 +355,17 @@ testApp.controller('ValTestDetailCtrl', ['$scope', '$rootScope', '$http', '$loca
         $scope.button_save_ticket = [];
         $scope.button_save_comment = [];
 
+        $scope.formatAuthors = function(authors) {
+            var full_names = [];
+            if (authors) {
+                authors.forEach(function(auth) {
+                    full_names.push(auth.given_name + " " + auth.family_name);
+                });
+                return full_names.join(", ");
+            } else {
+                return "";
+            }
+        }
 
         $scope.init_checkbox_latest_versions = function() {
             var list_ids = [];
@@ -360,7 +379,7 @@ testApp.controller('ValTestDetailCtrl', ['$scope', '$rootScope', '$http', '$loca
 
 
         $scope.is_graph_not_empty = function(data_graph) {
-            if (data_graph.length < 2 && data_graph[0].values.length < 2) {
+            if (data_graph && data_graph.length < 2 && data_graph[0].values.length < 2) {
                 return false;
             }
             return true;
@@ -457,12 +476,19 @@ testApp.controller('ValTestDetailCtrl', ['$scope', '$rootScope', '$http', '$loca
             });
         };
 
+        var cleanAuthors = function(test_obj) {
+            // remove empty authors from list
+            test_obj.author = test_obj.author.filter(au => (au.family_name.length > 0) || (au.given_name.length > 0));
+        };
+
         $scope.editTest = function() {
             if ($scope.detail_test.tests[0].alias != '' && $scope.detail_test.tests[0].alias != null) {
                 $scope.alias_is_valid = ValidationTestAliasRest.get({ app_id: $scope.app_id, test_id: $scope.detail_test.tests[0].id, alias: $scope.detail_test.tests[0].alias });
                 $scope.alias_is_valid.$promise.then(function() {
                     if ($scope.alias_is_valid.is_valid) {
+                        cleanAuthors($scope.detail_test.tests[0]);
                         var parameters = JSON.stringify($scope.detail_test.tests[0]);
+
                         ValidationTestDefinitionRest.put({ app_id: $scope.app_id, id: $scope.detail_test.tests[0].id }, parameters).$promise.then(function() {
                             document.getElementById("tab_description").style.display = "none";
                             document.getElementById("tab_version").style.display = "block";
@@ -478,6 +504,7 @@ testApp.controller('ValTestDetailCtrl', ['$scope', '$rootScope', '$http', '$loca
                 });
             } else {
                 $scope.detail_test.tests[0].alias = null;
+                cleanAuthors($scope.detail_test.tests[0]);
                 var parameters = JSON.stringify($scope.detail_test.tests[0]);
                 ValidationTestDefinitionRest.put({ app_id: $scope.app_id, id: $scope.detail_test.tests[0].id }, parameters).$promise.then(function() {
                     document.getElementById("tab_description").style.display = "none";
@@ -520,7 +547,6 @@ testApp.controller('ValTestDetailCtrl', ['$scope', '$rootScope', '$http', '$loca
             angular.element(document.querySelector("#editable-path-" + index)).attr('contenteditable', "true");
             angular.element(document.querySelector("#editable-path-" + index)).attr('bgcolor', 'ghostwhite');
             $scope.version_in_edition.push(index);
-
         };
         // $scope.DataCollapseFn = function() {
         //     $scope.DataCollapse = [];
@@ -680,6 +706,10 @@ testApp.controller('ValTestDetailCtrl', ['$scope', '$rootScope', '$http', '$loca
             };
         };
 
+        $scope.addAuthor = function() {
+            $scope.detail_test.tests[0].author.push({"given_name": "", "family_name": ""});
+        };
+
         $scope.editTicket = function(ticket_id) {
             angular.element(document.querySelector("#editable-title-" + ticket_id)).attr('contenteditable', "true");
             angular.element(document.querySelector("#editable-title-" + ticket_id)).attr('bgcolor', 'ghostwhite');
@@ -826,6 +856,7 @@ testApp.controller('ValTestDetailCtrl', ['$scope', '$rootScope', '$http', '$loca
                         version_editable.$promise.then(function(versions) {
                             $scope.version_is_editable = versions.are_editable;
                         });
+                        console.log($scope.detail_test.tests[0]);
 
                     });
                 });
@@ -944,6 +975,8 @@ testApp.controller('ValTestResultDetailCtrl', ['$window', '$scope', '$rootScope'
 
                     $scope.test_result = test_result.results[0];
                     console.log("results ----", $scope.test_result)
+
+/*
                     var result_storage = $scope.test_result.results_storage;
                     var result_storage_dict = $scope.split_result_storage_string(result_storage);
                     var collab = result_storage_dict.collab;
@@ -967,7 +1000,7 @@ testApp.controller('ValTestResultDetailCtrl', ['$window', '$scope', '$rootScope'
                                 } else {
                                     $scope.storage_url = "";
                                 }
-                                // $scope.storage_url = 
+                                // $scope.storage_url =
                                 //https://collab.humanbrainproject.eu/#/collab/2169/nav/18935
                             },
                             function(not_working) {})
@@ -982,6 +1015,8 @@ testApp.controller('ValTestResultDetailCtrl', ['$window', '$scope', '$rootScope'
                             });
                         },
                         function(not_worked) {}).finally(function() {});
+*/
+                    $scope.storage_files = $scope.test_result.results_storage;
 
                     DataHandler.loadModels({ app_id: $scope.app_id }).then(function(data) {
                         $scope.models = data
@@ -1175,7 +1210,7 @@ testApp.filter('filterMultiple', ['$parse', '$filter', function($parse, $filter)
                                     if (angular.isDefined(obj[i]['value'])) {
                                         fObj[key] = obj[i]['value'];
                                     } else {
-                                        if (key == 'collab_id') { //specific for Model Catalog home: to allow filter by collab (deep filter) 
+                                        if (key == 'collab_id') { //specific for Model Catalog home: to allow filter by collab (deep filter)
                                             fObj['app'] = {}
                                             fObj['app'][key] = obj[i];
                                         } else {
@@ -1212,7 +1247,7 @@ testApp.filter('filterMultiple', ['$parse', '$filter', function($parse, $filter)
 
 
 //Model catalog
-//directives and filters 
+//directives and filters
 var ModelCatalogApp = angular.module('ModelCatalogApp');
 
 ModelCatalogApp.directive("markdown", function(MarkdownConverter) {
@@ -1258,7 +1293,7 @@ ModelCatalogApp.filter('filterMultiple', ['$parse', '$filter', function($parse, 
                                     if (angular.isDefined(obj[i]['value'])) {
                                         fObj[key] = obj[i]['value'];
                                     } else {
-                                        if (key == 'collab_id') { //specific for Model Catalog home: to allow filter by collab (deep filter) 
+                                        if (key == 'collab_id') { //specific for Model Catalog home: to allow filter by collab (deep filter)
                                             fObj['app'] = {}
                                             fObj['app'][key] = obj[i];
                                         } else {
@@ -1338,6 +1373,14 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
                 }
             }
             $scope.collab_ids_to_select.sort(function(a, b){return a - b});
+        }
+
+        $scope.formatAuthors = function(authors) {
+            var full_names = [];
+            authors.forEach(function(auth) {
+                full_names.push(auth.given_name + " " + auth.family_name)
+            });
+            return full_names.join(", ")
         }
 
         $scope.isloading = function() {
@@ -1549,6 +1592,7 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
                     $scope.collab_model_scope = CollabParameters.getParametersOrDefaultByType("model_scope");
                     $scope.collab_abstraction_level = CollabParameters.getParametersOrDefaultByType("abstraction_level");
                     $scope.collab_organization = CollabParameters.getParametersOrDefaultByType("organization");
+
                     // reorder organizations HBP-SP nummerically
                     $scope.collab_organization.sort($scope.organizationInnerComparator);
 
@@ -1614,6 +1658,27 @@ ModelCatalogApp.controller('ModelCatalogCreateCtrl', ['$scope', '$rootScope', '$
         $scope.model_scope = undefined;
         $scope.abstraction_level = undefined;
         $scope.organization = undefined;
+        $scope.authors_str = "";
+        $scope.owners_str = ""
+
+        $scope.model = {
+            cell_type: null,
+            description: "",
+            author: [],
+            owner: [],
+            model_scope: null,
+            private: true,
+            app_id: null,
+            alias: null,
+            abstraction_level: null,
+            brain_region: null,
+            organization: null,
+            species: null,
+            name: "",
+            model_image: [],
+            model_instance: []
+        };
+
 
         //functions
         $scope.displayAddImage = function() {
@@ -1649,6 +1714,46 @@ ModelCatalogApp.controller('ModelCatalogCreateCtrl', ['$scope', '$rootScope', '$
             return $scope.alias_is_valid;
         };
 
+        $scope.allAuthors = function(people_string) {
+            if (arguments.length) {
+                // todo: this does not correctly handle multi-part surnames, e.g. "von Neumann"
+                $scope.authors_str = people_string;
+                var full_names = people_string.split(";");
+                $scope.model.author = [];
+                full_names.forEach(function(person_name) {
+                    var parts = person_name.trim().split(" ");
+                    var n_parts = parts.length;
+                    $scope.model.author.push({
+                        given_name: parts.slice(0, n_parts - 1).join(" "),
+                        family_name: parts[n_parts - 1]
+                    });
+                });
+                //console.log("Setting authors");
+                //console.log($scope.model.author);
+            } else {
+                return $scope.authors_str;
+            }
+        };
+
+        $scope.allOwners = function(people_string) {
+            if (arguments.length) {
+                // todo: this does not correctly handle multi-part surnames, e.g. "von Neumann"
+                $scope.owners_str = people_string;
+                var full_names = people_string.split(";");
+                $scope.model.owner = [];
+                full_names.forEach(function(person_name) {
+                    var parts = person_name.trim().split(" ");
+                    var n_parts = parts.length;
+                    $scope.model.owner.push({
+                        given_name: parts.slice(0, n_parts - 1).join(" "),
+                        family_name: parts[n_parts - 1]
+                    });
+                });
+            } else {
+                return $scope.owners_str;
+            }
+        };
+
         $scope._saveModel_AfterAllChecks = function(withInstance) {
 
             if (withInstance != undefined) {
@@ -1661,6 +1766,9 @@ ModelCatalogApp.controller('ModelCatalogCreateCtrl', ['$scope', '$rootScope', '$
                 var a = ScientificModelRest.save({ app_id: $scope.app_id }, parameters).$promise.then(function(data) {
                     DataHandler.setStoredModelsAsOutdated();
                     Context.modelCatalog_goToModelDetailView(data.uuid);
+                },
+                function(err) {
+                    console.log(err);
                 });
             }
         }
@@ -1682,11 +1790,11 @@ ModelCatalogApp.controller('ModelCatalogCreateCtrl', ['$scope', '$rootScope', '$
                 }
                 //version is defined and not empty
                 else {
-                    //and source is undefined and empty then error 
+                    //and source is undefined and empty then error
                     if ($scope.model_instance.source == undefined || $scope.model_instance.source == "") {
                         alert("If you want to create a new version, please ensure the version name and the code source are correctly filled.")
                     }
-                    //and source is defined then save version 
+                    //and source is defined then save version
                     else {
                         saveInstance = true;
                     }
@@ -1812,6 +1920,13 @@ ModelCatalogApp.controller('ModelCatalogDetailCtrl', ['$scope', '$rootScope', '$
 
         };
 
+        $scope.formatAuthors = function(authors) {
+            var full_names = [];
+            authors.forEach(function(auth) {
+                full_names.push(auth.given_name + " " + auth.family_name)
+            });
+            return full_names.join(", ")
+        }
 
         Context.setService().then(function() {
 
@@ -1834,6 +1949,7 @@ ModelCatalogApp.controller('ModelCatalogDetailCtrl', ['$scope', '$rootScope', '$
                     $("#ImagePopupDetail").hide();
                     $scope.model = ScientificModelRest.get({ app_id: $scope.app_id, id: $stateParams.uuid, web_app: "True" });
                     $scope.model.$promise.then(function(model) {
+                        console.log($scope.model.models[0]);
                         $scope.change_collab_url_to_real_url()
 
                         var new_description_promise = MarkdownConverter.change_collab_images_url_to_real_url($scope.model.models[0].description);
@@ -1853,7 +1969,7 @@ ModelCatalogApp.controller('ModelCatalogDetailCtrl', ['$scope', '$rootScope', '$
                     $scope.is_collab_member = false;
                     $scope.model.$promise.then(function() {
                         $scope.is_collab_member = IsCollabMemberOrAdminRest.get({
-                            app_id: $scope.model.models[0].app.id,
+                            collab_id: $scope.model.models[0].app.collab_id,
                         })
                         $scope.is_collab_member.$promise.then(function() {
                             $scope.is_collab_member = $scope.is_collab_member.is_member;
@@ -1873,6 +1989,8 @@ ModelCatalogApp.controller('ModelCatalogEditCtrl', ['$scope', '$rootScope', '$ht
 
     function($scope, $rootScope, $http, $location, $state, $stateParams, ScientificModelRest, ScientificModelInstanceRest, ScientificModelImageRest, CollabParameters, Context, ScientificModelAliasRest, AreVersionsEditableRest, DataHandler, clbStorage, IsSuperUserRest) {
 
+        $scope.authors_str = [];
+        $scope.owners_str = [];
 
         $scope.change_collab_url_to_real_url = function() {
             //COULD BE IN A SERVICE
@@ -1895,13 +2013,65 @@ ModelCatalogApp.controller('ModelCatalogEditCtrl', ['$scope', '$rootScope', '$ht
             });
         }
 
-        $scope.deleteImage = function(img) {
-            var image = img
-            ScientificModelImageRest.delete({ app_id: $scope.app_id, id: image.id }).$promise.then(
-                function(data) {
-                    alert('Image ' + img.id + ' has been deleted !');
-                    $scope.reloadState();
+        $scope.getUUID = function(id) { // this should probably be a filter
+            if (id.startsWith("http")) {
+                // return the last part of the URI
+                console.log("UUID from URI " + id);
+                var parts = id.split("/");
+                return parts[parts.length - 1];
+            } else {
+                console.log("Already have UUID");
+                return id;
+            }
+        };
+
+        $scope.allAuthors = function(people_string) {
+            if (arguments.length) {
+                // todo: this does not correctly handle multi-part surnames, e.g. "von Neumann"
+                $scope.authors_str = people_string;
+                var full_names = people_string.split(";");
+                $scope.model.author = [];
+                full_names.forEach(function(person_name) {
+                    var parts = person_name.trim().split(" ");
+                    var n_parts = parts.length;
+                    $scope.model.author.push({
+                        given_name: parts.slice(0, n_parts - 1).join(" "),
+                        family_name: parts[n_parts - 1]
+                    });
                 });
+                //console.log("Setting authors");
+                //console.log($scope.model.author);
+            } else {
+                return $scope.authors_str;
+            }
+        };
+
+        $scope.allOwners = function(people_string) {
+            if (arguments.length) {
+                // todo: this does not correctly handle multi-part surnames, e.g. "von Neumann"
+                $scope.owners_str = people_string;
+                var full_names = people_string.split(";");
+                $scope.model.owner = [];
+                full_names.forEach(function(person_name) {
+                    var parts = person_name.trim().split(" ");
+                    var n_parts = parts.length;
+                    $scope.model.owner.push({
+                        given_name: parts.slice(0, n_parts - 1).join(" "),
+                        family_name: parts[n_parts - 1]
+                    });
+                });
+            } else {
+                return $scope.owners_str;
+            }
+        };
+
+        $scope.deleteImage = function(img) {
+            $scope.model.models[0].
+            $scope.model.models[0].images = $scope.model.models[0].images.filter(
+                function(value, index, arr){
+                    return value != img;
+                });
+            $scope.saveModel()
         };
         $scope.reloadState = function() {
             //to simplify testing
@@ -1913,29 +2083,24 @@ ModelCatalogApp.controller('ModelCatalogEditCtrl', ['$scope', '$rootScope', '$ht
         };
         $scope.saveImage = function() {
             if (JSON.stringify($scope.image) != undefined) {
-                $scope.image.model_id = $stateParams.uuid;
-
-                var parameters = JSON.stringify([$scope.image]);
-                ScientificModelImageRest.post({ app_id: $scope.app_id }, parameters).$promise.then(function(data) {
-                    $scope.addImage = false;
-                    alert('Image has been saved !');
-                    $scope.reloadState();
-                }).catch(function(e) {
-                    alert(e.data);
+                if ($scope.model.models[0].images) {
+                    $scope.model.models[0].images.append({
+                        'caption': $scope.image.caption,
+                        'url': $scope.image.url
                 });
+                } else {
+                    $scope.model.models[0].images = [{
+                        'caption': $scope.image.caption,
+                        'url': $scope.image.url
+                    }];
+                }
+                $scope.saveModel()
+                $scope.reloadState();
             } else { alert("You need to add an url !") }
         };
         $scope.closeImagePanel = function() {
             $scope.image = {};
             $scope.addImage = false;
-        };
-        $scope.editImages = function() {
-            var parameters = $scope.model.models[0].images;
-            var a = ScientificModelImageRest.put({ app_id: $scope.app_id }, parameters).$promise.then(function(data) {
-                alert('Model images have been correctly edited');
-            }).catch(function(e) {
-                alert(e.data);
-            });
         };
         $scope.deleteModel = function() {
             switch (prompt("Are you sure you want to delete this model? (Yes/No)", "No")) {
@@ -1955,10 +2120,14 @@ ModelCatalogApp.controller('ModelCatalogEditCtrl', ['$scope', '$rootScope', '$ht
         }
         $scope.saveModel = function() {
             if ($scope.model.models[0].alias != '' && $scope.model.models[0].alias != null) {
-                $scope.alias_is_valid = ScientificModelAliasRest.get({ app_id: $scope.app_id, model_id: $scope.model.models[0].id, alias: $scope.model.models[0].alias });
+                $scope.alias_is_valid = ScientificModelAliasRest.get({
+                    app_id: $scope.app_id,
+                    model_id: $scope.model.models[0].id,
+                    alias: $scope.model.models[0].alias });
                 $scope.alias_is_valid.$promise.then(function() {
                     if ($scope.alias_is_valid.is_valid) {
                         var parameters = $scope.model;
+                        parameters.models[0].id = parameters.models[0].id;
                         var a = ScientificModelRest.put({ app_id: $scope.app_id }, parameters).$promise.then(function(data) {
                             DataHandler.setStoredModelsAsOutdated();
                             alert('Model correctly edited');
@@ -1972,6 +2141,7 @@ ModelCatalogApp.controller('ModelCatalogEditCtrl', ['$scope', '$rootScope', '$ht
             } else {
                 $scope.model.models[0].alias = null;
                 var parameters = $scope.model;
+                parameters.id = parameters.id;
                 var a = ScientificModelRest.put({ app_id: $scope.app_id }, parameters).$promise.then(function(data) {
                     DataHandler.setStoredModelsAsOutdated();
 
@@ -1982,6 +2152,7 @@ ModelCatalogApp.controller('ModelCatalogEditCtrl', ['$scope', '$rootScope', '$ht
             }
         };
         $scope.saveModelInstance = function(model_instance) {
+            model_instance['model_id'] = $scope.model.models[0].id;
             var parameters = JSON.stringify([model_instance]);
             var a = ScientificModelInstanceRest.put({ app_id: $scope.app_id }, parameters).$promise.then(function(data) { alert('model instances correctly edited') }).catch(function(e) {
                 alert(e.data);
@@ -2006,7 +2177,10 @@ ModelCatalogApp.controller('ModelCatalogEditCtrl', ['$scope', '$rootScope', '$ht
         }
 
         $scope.checkAliasValidity = function() {
-            $scope.alias_is_valid = ScientificModelAliasRest.get({ app_id: $scope.app_id, model_id: $scope.model.models[0].id, alias: $scope.model.models[0].alias });
+            $scope.alias_is_valid = ScientificModelAliasRest.get({
+                app_id: $scope.app_id,
+                model_id: $scope.model.models[0].id,
+                alias: $scope.model.models[0].alias });
         };
         $scope.isInArray = function(value, array) {
             return array.indexOf(value) > -1;
@@ -2040,6 +2214,18 @@ ModelCatalogApp.controller('ModelCatalogEditCtrl', ['$scope', '$rootScope', '$ht
 
                 $scope.model.$promise.then(function(model) {
                     $scope.change_collab_url_to_real_url();
+                    // return author full names as a string
+                    var full_names = [];
+                    $scope.model.models[0].author.forEach(function(person) {
+                        full_names.push(person.given_name + " " + person.family_name)
+                    });
+                    $scope.authors_str = full_names.join("; ")
+                    // same for owners
+                    full_names = [];
+                    $scope.model.models[0].owner.forEach(function(person) {
+                        full_names.push(person.given_name + " " + person.family_name)
+                    });
+                    $scope.owners_str = full_names.join("; ")
                 });
 
                 var version_editable = AreVersionsEditableRest.get({ app_id: $scope.app_id, model_id: $stateParams.uuid });
@@ -2065,6 +2251,10 @@ ModelCatalogApp.controller('ModelCatalogVersionCtrl', ['$scope', '$rootScope', '
             $scope.model_instance.model_id = $stateParams.uuid;
             var parameters = JSON.stringify([$scope.model_instance]);
             ScientificModelInstanceRest.save({ app_id: $scope.app_id }, parameters).$promise.then(function(data) {
+                console.log("Saved version:");
+                console.log(data);
+                $scope.model_instance.id = data["uuid"];
+                $scope.model.models[0].instances.push($scope.model_instance);
                 $location.path('/model-catalog/detail/' + $stateParams.uuid);
             }).catch(function(e) {
                 alert(e.data);
