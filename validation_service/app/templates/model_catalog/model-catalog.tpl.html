@@ -121,7 +121,7 @@
                 </tr>
             </thead>
             <tbody>
-                <tr ng-click="Context.goToModelDetailViewClick($event, model.id)" ng-mousedown="Context.goToModelDetailViewMouseDown($event, model.id)" 
+                <tr ng-click="Context.goToModelDetailViewClick($event, model.id)" ng-mousedown="Context.goToModelDetailViewRightClick($event, model.id)" 
                         oncontextmenu="return false" class="tr-clickable " dir-paginate="model in models.models | filter:search | filterMultiple:{ organization:selected_organization, species:selected_species, brain_region:selected_brain_region, cell_type:selected_cell_type, model_scope:selected_model_scope, abstraction_level:selected_abstraction_level, collab_id: selected_collab}
                         | orderBy: order_by:false:organizationComparator | itemsPerPage: itemsPerPages" pagination-id="models">
 

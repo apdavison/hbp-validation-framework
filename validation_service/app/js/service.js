@@ -71,7 +71,7 @@ ContextServices.service('Context', ['$rootScope', '$location', 'AppIDRest', 'Col
                     break;
             }
         }
-        var goToModelDetailViewMouseDown = function(evt, model_id, app_type) {
+        var goToModelDetailViewRightClick = function(evt, model_id, app_type) {
             switch (evt.which) {
                 case 3:
                     // this is right click
@@ -411,7 +411,7 @@ ContextServices.service('Context', ['$rootScope', '$location', 'AppIDRest', 'Col
             getStateType: getStateType,
             getCurrentLocationSearch: getCurrentLocationSearch,
             goToModelDetailViewClick: goToModelDetailViewClick,
-            goToModelDetailViewMouseDown: goToModelDetailViewMouseDown,
+            goToModelDetailViewRightClick: goToModelDetailViewRightClick,
             goToTestDetailView: goToTestDetailView,
             goToValidationModelView: goToValidationModelView,
             goToResultDetailView: goToResultDetailView,
