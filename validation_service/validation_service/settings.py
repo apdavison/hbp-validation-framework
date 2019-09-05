@@ -9,8 +9,8 @@ import json
 import hbp_app_python_auth.settings as auth_settings
 
 
-# ENV = os.environ.get('VALIDATION_SERVICE_ENV', 'production')
-ENV = 'dev'
+ENV = os.environ.get('VALIDATION_SERVICE_ENV', 'production')
+#ENV = 'dev'
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -19,7 +19,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True#os.environ.get('DEBUG') in ['True', '1']
-LOCAL_DB = True ## only applies when ENV='dev'
+LOCAL_DB = False  ## only applies when ENV='dev'
 
 ALLOWED_HOSTS = ["*"]
 
@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'jsonify',
     'social.apps.django_app.default',
     'hbp_app_python_auth',
+    'fairgraph',
     'markdown_deux',
 
     'corsheaders',
@@ -57,31 +58,19 @@ from django.utils.functional import SimpleLazyObject
 
 MIDDLEWARE_CLASSES = (
     # 'app.middleware.personal_middleware.UserData',
-
     'app.middleware.personal_middleware.DisableCsrfCheck',
-
-    
     # 'django.middleware.common.CommonMiddleware',
-
     'django.middleware.csrf.CsrfViewMiddleware',
-
-    
-
     'django.contrib.sessions.middleware.SessionMiddleware',
-
     'corsheaders.middleware.CorsMiddleware',
-    
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    'app.middleware.profile_middleware.CProfileMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    
     'social.apps.django_app.middleware.SocialAuthExceptionMiddleware',
     # 'social_django.middleware.SocialAuthExceptionMiddleware', ####
-
- 
-  
 )
 
 AUTHENTICATION_BACKENDS = (
@@ -171,7 +160,7 @@ HBP_ENV_URL = 'https://collab.humanbrainproject.eu/config.json'
 HBP_IDENTITY_SERVICE_URL = 'https://services.humanbrainproject.eu/idm/v1/api'
 HBP_STORAGE_SERVICE_URL = 'https://services.humanbrainproject.eu/storage/v1/api/entity/'
 ADMIN_COLLAB_ID = "13947"
-
+NEXUS_ENDPOINT = "https://nexus-int.humanbrainproject.org/v0"
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'none')
@@ -201,11 +190,23 @@ LOGGING = {
         'model_validation_api': {
             'handlers': ['file'],
             'level': 'DEBUG',
+        },
+        'openid_http_client.http_client': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+        },
+        'kg_migration': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+        },
+        'fairgraph': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
         }
     },
     'formatters': {
         'verbose': {
-            'format': '%(asctime)s %(levelname)s %(name)s: %(message)s'
+            'format': '%(asctime)s %(levelname)s %(name)s %(filename)s %(lineno)s: %(message)s'
         },
     },
 }
