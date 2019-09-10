@@ -96,7 +96,6 @@ ContextServices.service('Context', ['$rootScope', '$location', 'AppIDRest', 'Col
         var modelCatalog_goToModelDetailView = function(model_id) {
             sendState("model", model_id);
             setState(model_id);
-
             $location.path('/model-catalog/detail/' + model_id); // this is left click
             setTimeout(function() {}, 0);
         };
@@ -450,11 +449,12 @@ ContextServices.service('Context', ['$rootScope', '$location', 'AppIDRest', 'Col
 
 
 var DataHandlerServices = angular.module('DataHandlerServices', ['ngResource', 'btorfs.multiselect']);
-DataHandlerServices.service('DataHandler', ['$rootScope', 'ScientificModelRest', 'ValidationTestDefinitionRest',
-    function($rootScope, ScientificModelRest, ValidationTestDefinitionRest) {
+DataHandlerServices.service('DataHandler', ['$rootScope', 'ScientificModelRest', 'ValidationTestDefinitionRest', 'IsCollabMemberOrAdminRest',
+    function($rootScope, ScientificModelRest, ValidationTestDefinitionRest, IsCollabMemberOrAdminRest) {
         var models = { date_last_load: undefined, status: undefined, data: undefined };
         var tests = { date_last_load: undefined, status: undefined, data: undefined };
         var results = { date_last_load: undefined, status: undefined, data: undefined };
+        var is_collab_member = undefined;
         //possible states status :
         //- up to date
         //- outdated
@@ -479,7 +479,7 @@ DataHandlerServices.service('DataHandler', ['$rootScope', 'ScientificModelRest',
 
                 } else {
                     if (models.status == "up_to_date") {
-                        var data = _loadStoredModels();
+                        var data = loadStoredModels();
                         resolve(data, models.status);
                     } else {
                         var temp_models = ScientificModelRest.get(dict_params);
@@ -567,7 +567,7 @@ DataHandlerServices.service('DataHandler', ['$rootScope', 'ScientificModelRest',
             });
         };
 
-        var _loadStoredModels = function() {
+        var loadStoredModels = function() {
             return (models.data);
         };
 
@@ -594,13 +594,31 @@ DataHandlerServices.service('DataHandler', ['$rootScope', 'ScientificModelRest',
             return models.status
         }
 
+        var isCollabMember = function(app_id) {
+            return new Promise(function(resolve, reject) {
+                if (is_collab_member !== undefined) {
+                    resolve(is_collab_member);
+                }
+                else {
+                    is_collab_member = false;
+                    is_collab_member = IsCollabMemberOrAdminRest.get({ app_id: app_id, });
+                    is_collab_member.$promise.then(function() {
+                        is_collab_member = is_collab_member.is_member;
+                        resolve(is_collab_member);
+                    });
+                }
+            });
+        }
+
         return {
             loadModels: loadModels,
             loadModelsByPage: loadModelsByPage,
+            loadStoredModels: loadStoredModels,
             loadTests: loadTests,
             getStoredModels: getStoredModels,
             getStoredTests: getStoredTests,
             getCurrentStatus: getCurrentStatus,
+            isCollabMember: isCollabMember,
             setStoredModelsAsOutdated: setStoredModelsAsOutdated,
             setStoredTestsAsOutdated: setStoredTestsAsOutdated,
 

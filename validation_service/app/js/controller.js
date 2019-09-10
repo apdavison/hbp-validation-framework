@@ -1334,6 +1334,7 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
     '$rootScope',
     '$http',
     '$location',
+    '$timeout',
     'ScientificModelRest',
     'CollabParameters',
     'IsCollabMemberOrAdminRest',
@@ -1341,12 +1342,11 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
     'Help',
     'DataHandler',
 
-    function($scope, $rootScope, $http, $location, ScientificModelRest, CollabParameters, IsCollabMemberOrAdminRest, Context, Help, DataHandler) {
+    function($scope, $rootScope, $http, $location, $timeout, ScientificModelRest, CollabParameters, IsCollabMemberOrAdminRest, Context, Help, DataHandler) {
 
         //pagination parameters
         $scope.itemsPerPages = 20;
         $scope.models = [];
-        $scope.total_models = 0;
         
         $scope.order_by = '-creation_date';
         $scope.collab_ids_to_select = new Array();
@@ -1564,10 +1564,10 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
 //        $scope.onSelect_cell_type = function(value, index, select) {
 
         $scope.$on('models_updated', function(event, models) {
-            $scope.models = $scope._change_empty_model_parameters(models);
-            $scope._get_collab_and_app_ids_from_models();
-// JZ test
-//            $scope.$apply();
+            $timeout(function() {
+                $scope.models = $scope._change_empty_model_parameters(models);
+                $scope._get_collab_and_app_ids_from_models();
+            });
         });
 
         Context.setService().then(function() {
@@ -1597,20 +1597,27 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
                     $scope.collab_organization.sort($scope.organizationInnerComparator);
 
                     // $scope.selected_collab = $scope.collab_ids_to_select //initialize 
-                        
-                    $scope.is_collab_member = false;
-                    $scope.is_collab_member = IsCollabMemberOrAdminRest.get({ app_id: $scope.app_id, });
-                    $scope.is_collab_member.$promise.then(function() {
+                    DataHandler.isCollabMember($scope.app_id).then(function(data) {
+                        $scope.is_collab_member = data;
+                        $scope.$apply();
+                    });
 
-                        $scope.is_collab_member = $scope.is_collab_member.is_member;
+                    var status = DataHandler.getCurrentStatus();
+                    if (status == "up_to_date" || status == "loading") {
+                        var data = DataHandler.loadStoredModels();
+                        $scope.models = $scope._change_empty_model_parameters(data);
+                        $scope._get_collab_and_app_ids_from_models();
+                        $scope.$apply();
 
-                        // if this function were outside promise, it could block the other two promises due to race condition
+                        $('#status').fadeOut(); // will first fade out the loading animation 
+                        $('#preloader').delay(350).fadeOut('slow'); // will fade out the white DIV that covers the website. 
+                        $('body').delay(350).css({ 'overflow': 'visible' });
+                    }
+                    else {
+                    // if this function were outside promise, it could block the other two promises due to race condition
                         DataHandler.loadModels({ app_id: $scope.app_id, page: 1 }).then(function(data) {
 
-                            $scope.total_models = data.total_models;
                             $scope.nb_pages = data.total_nb_pages;
-                            $scope.maxSize = 5;
-                            $scope.current_page = 1;
                             // to make the models on the front page immediately visible and not need to wait for models_updated event
                             $scope.models = $scope._change_empty_model_parameters(data);
                             $scope.$apply();
@@ -1619,13 +1626,9 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
                             $('#preloader').delay(350).fadeOut('slow'); // will fade out the white DIV that covers the website. 
                             $('body').delay(350).css({ 'overflow': 'visible' });
 
-                            var status = DataHandler.getCurrentStatus();
-                            if (status != "up_to_date") {
-                                DataHandler.loadModelsByPage($scope.app_id, $scope.nb_pages);
-                            }
+                            DataHandler.loadModelsByPage($scope.app_id, $scope.nb_pages);
                         });
-
-                    });
+                    }
                 });
 
 
@@ -1807,6 +1810,7 @@ ModelCatalogApp.controller('ModelCatalogCreateCtrl', ['$scope', '$rootScope', '$
 
         $scope.saveModel = function() {
 
+            $scope.model.private = Boolean($scope.model.private == 'true');
             if ($scope.model.alias != '' && $scope.model.alias != undefined) {
                 $scope.alias_is_valid = $scope.checkAliasValidity();
                 $scope.alias_is_valid.$promise.then(function() {
