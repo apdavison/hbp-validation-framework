@@ -77,8 +77,8 @@ def check_list_uuid_validity (uuid_list) :
     :returns: response
     :rtype: boolean
     """
-    for i in uuid_list :
-        if check_uuid_validity(i) is False :
+    for i in uuid_list:
+        if check_uuid_validity(i) is False:
             return False
     return True
 
@@ -91,10 +91,10 @@ def check_uuid_validity (uuid_string):
     :returns: response
     :rtype: boolean
     """
-    try :
+    try:
         UUID(uuid_string)
         return True
-    except :
+    except:
         return False
 
 

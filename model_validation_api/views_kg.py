@@ -135,10 +135,10 @@ class Models_KG(KGAPIView):
         # time_spent=time.time()
         id = request.GET.getlist('id')
         if check_list_uuid_validity(id) is False :
-            return Response("Badly formed uuid in : id", status=status.HTTP_400_BAD_REQUEST)
+            return Response("Badly formed uuid", status=status.HTTP_400_BAD_REQUEST)
 
         #if model id not specified
-        if(len(id) == 0):
+        if len(id) == 0:
 
             web_app = request.GET.getlist('web_app')
 
@@ -286,7 +286,7 @@ class Models_KG(KGAPIView):
                 logger.info("Searching for ModelProject with the following query: {}".format(filter_query))
                 models = KGQuery(ModelProject, filter_query, context).resolve(self.client)
             else:
-                models = ModelProject.list(self.client)
+                models = ModelProject.list(self.client, api="query", resolved=True, scope="inferred")
 
             logger.debug("{} total models".format(len(as_list(models))))
             authorized_collabs = []
@@ -315,7 +315,7 @@ class Models_KG(KGAPIView):
                 'total_models': len(authorized_models)
             })
 
-        # a model ID has been specified
+        # a model ID or IDs has been specified
         else:
             try:
                 web_app = request.GET.getlist('web_app')
@@ -346,7 +346,7 @@ class Models_KG(KGAPIView):
             if response["models"]:
                 return Response(response)
             elif response["unauthorized"]:
-                return Response(response,status=status.HTTP_401_UNAUTHORIZED)
+                return Response(response, status=status.HTTP_401_UNAUTHORIZED)
             elif response["not found"]:
                 return Response(response, status=status.HTTP_404_NOT_FOUND)
             else:

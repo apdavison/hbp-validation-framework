@@ -634,7 +634,8 @@ class ValidationTestResultKGSerializer(BaseKGSerializer):
             "normalized_score": obj.normalized_score,
             # the following are temporary. Ideally the client should do a lookup using the IDs above
             "model_version": ScientificModelInstanceKGSerializer(validation_activity.model_instance, self.client).data,
-            "test_code": ValidationTestCodeKGSerializer(validation_activity.test_script, self.client).data
+            "test_code": ValidationTestCodeKGSerializer(validation_activity.test_script, self.client).data,
+            "hash": obj.hash
         }
         return data
 
@@ -662,7 +663,8 @@ class ValidationTestResultKGSerializer(BaseKGSerializer):
                 passed=self.data["passed"],
                 timestamp=timestamp,
                 additional_data=additional_data,
-                collab_id=self.data["project"]
+                collab_id=self.data["project"],
+                hash=self.data["hash"]
             )
             self.obj.save(self.client)
 
@@ -678,6 +680,7 @@ class ValidationTestResultKGSerializer(BaseKGSerializer):
                 reference_data=reference_data,
                 timestamp=timestamp,
                 result=self.obj
+                # store activity duration here? --> "runtime" field
             )
             activity.save(self.client)
             self.obj.generated_by = activity
