@@ -286,7 +286,7 @@ class Models_KG(KGAPIView):
                 logger.info("Searching for ModelProject with the following query: {}".format(filter_query))
                 models = KGQuery(ModelProject, filter_query, context).resolve(self.client)
             else:
-                models = ModelProject.list(self.client, api="query", resolved=True, scope="inferred")
+                models = ModelProject.list(self.client, size=10000, api="query", resolved=True, scope="inferred")
 
             logger.debug("{} total models".format(len(as_list(models))))
             authorized_collabs = []
