@@ -79,7 +79,8 @@ class KGAPIView(APIView):
             method, token = auth.split(" ")
             logger.debug(token)
         else:
-            raise NotAuthenticated()
+            logger.debug("No authorization token provided")
+            raise NotAuthenticated("No authorization token provided")
             #return Response("No authorization token provided", status=status.HTTP_401_UNAUTHORIZED)
 
 
