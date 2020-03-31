@@ -1311,7 +1311,7 @@ ModelCatalogApp.directive("markdown", function(MarkdownConverter) {
                 var html = MarkdownConverter.getConverter($element.text());
                 $element.html(html);
                 MathJax.Hub.Queue(["Typeset", MathJax.Hub, $element[0]]);
-                $scope.$apply();
+                //$scope.$apply();
             });
         }]
     }
