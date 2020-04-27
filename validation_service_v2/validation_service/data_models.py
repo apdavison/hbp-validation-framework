@@ -113,6 +113,81 @@ class Person(BaseModel):
         return fairgraph.core.Person(family_name=self.family_name, given_name=self.given_name)
 
 
+class FunctionArgument(BaseModel):
+    name: str
+    type: str
+    description: str = None
+
+
+class FunctionInterface(BaseModel):
+    name: str
+    arguments: List[FunctionArgument]
+    return_values: List[FunctionArgument]
+
+
+class Capability(BaseModel):
+    id: UUID = None
+    uri: HttpUrl = None
+    name: str
+    description: str  = None
+    methods: List[FunctionInterface]
+    model_scope: ModelScope = None
+    abstraction_level: AbstractionLevel = None
+    cell_type: CellType = None
+
+    @classmethod
+    def from_kg_object(cls, obj, client):
+        if isinstance(obj, KGProxy):
+            obj = obj.resolve(client, api="nexus")
+        methods = []
+        if obj.specification:
+            for key, value in obj.specification.items():
+                method = FunctionInterface(
+                    name=key,
+                    arguments=[FunctionArgument(**arg) for arg in value["arguments"]],
+                    return_values=[FunctionArgument(**arg) for arg in value["return_values"]],
+                )
+                methods.append(method)
+        return cls(
+            id=obj.uuid,
+            uri=obj.id,
+            name=obj.name,
+            description=obj.description
+            cell_type=obj.celltype.label if obj.celltype else None,
+            model_scope=obj.model_of.label if obj.model_of else None,
+            abstraction_level=obj.abstraction_level.label if obj.abstraction_level else None,
+            methods=methods
+        )
+
+    def to_kg_object(self):
+        specification = {}
+        for method in self.methods:
+            specification[method.name] = {
+                "arguments": [{
+                    "name": arg.name,
+                    "type": arg.type
+                    "description": arg.description
+                } for arg in method.arguments]
+                "return_values": [{
+                    "name": arg.name,
+                    "type": arg.type
+                    "description": arg.description
+                } for arg in method.return_values]
+            }
+        obj =  fairgraph.brainsimulation.Capability(
+            name=self.name,
+            description=self.description,
+            celltype=get_ontology_object(fairgraph.commons.CellType, self.cell_type),
+            abstraction_level=get_ontology_object(fairgraph.commons.AbstractionLevel,
+                                                  self.abstraction_level),
+            model_of=get_ontology_object(fairgraph.commons.ModelScope, self.model_scope),
+            specification=specification
+        )
+        if self.uri:
+            obj.id = str(self.uri)
+        return obj
+
+
 class ModelInstance(BaseModel):
     id: UUID = None
     uri: HttpUrl = None
@@ -125,6 +200,8 @@ class ModelInstance(BaseModel):
     hash: str = None
     timestamp: datetime = None
     morphology: HttpUrl = None
+    capabilities: List[Capability] = None
+
     # should probably add "project" or "instance_of" field containing parent model uuid
 
     class Config:
@@ -160,6 +237,9 @@ class ModelInstance(BaseModel):
             instance_data["morphology_id"] = morph.id  # internal
         if hasattr(instance, "e_model"):
             instance_data["e_model_id"] = instance.e_model.id
+        if hasattr(instance, "capabilities"):
+            instance_data["capabilities"] = [Capability.from_kg_object(cap, client)
+                                             for cap in instance.capabilities]
         try:
             obj = cls(**instance_data)
         except ValidationError as err:
@@ -176,6 +256,8 @@ class ModelInstance(BaseModel):
         if hasattr(self, "script_id"):
             script.id = self.script_id
         kg_objects = [script]
+        capabilities = [cap.to_kg_object() for cap in self.capabilities]
+        kg_objects += capabilities
 
         if model_project.model_of and model_project.model_of.label == "single cell" and self.morphology:
             e_model = fairgraph.brainsimulation.EModel(
@@ -205,6 +287,7 @@ class ModelInstance(BaseModel):
                 version=self.version,
                 parameters=self.parameters,
                 timestamp=self.timestamp or datetime.now(),
+                capabilities=capabilities,
                 release=None)
         else:
             minst = fairgraph.brainsimulation.ModelInstance(
@@ -217,6 +300,7 @@ class ModelInstance(BaseModel):
                 version=self.version,
                 parameters=self.parameters,
                 timestamp=self.timestamp or datetime.now(),
+                capabilities=capabilities,
                 release=None)
         if self.uri:
             minst.id = str(self.uri)
@@ -236,6 +320,7 @@ class ModelInstancePatch(BaseModel):
     hash: str = None
     timestamp: datetime = None
     morphology: HttpUrl = None
+    capabilities: List[Capability] = None
 
     class Config:
         extra = "allow"  # we temporarily store the IDs of sub-objects (e.g. ModelScript)
@@ -464,6 +549,7 @@ class ValidationTest(BaseModel):
     test_type: ValidationTestType = None
     score_type: ScoreType = None
     instances: List[ValidationTestInstance] = None
+    requires: List[Capability] = None
 
     @classmethod
     def from_kg_object(cls, test_definition, client, recently_saved_scripts=[]):
@@ -475,6 +561,11 @@ class ValidationTest(BaseModel):
             scripts[id] = script
         instances = [ValidationTestInstance.from_kg_object(inst, client)
                      for inst in scripts.values()]
+        if hasattr(test_definition, "required_capabilities"):
+            capabilities = [cap.from_kg_object(client)
+                            for cap in test_definition.required_capabilities]
+        else:
+            capabilities = None
         obj = cls(
             id=test_definition.uuid,
             uri=test_definition.id,
@@ -494,7 +585,8 @@ class ValidationTest(BaseModel):
             data_modality=test_definition.recording_modality  if test_definition.recording_modality else None,
             test_type=test_definition.test_type if test_definition.test_type else None,
             score_type=test_definition.score_type if test_definition.score_type else None,
-            instances=sorted(instances, key=lambda inst: inst.timestamp)
+            instances=sorted(instances, key=lambda inst: inst.timestamp),
+            required=capabilities
         )
         return obj
 
@@ -508,7 +600,8 @@ class ValidationTest(BaseModel):
                 timestamp=timestamp
             ) for i, url in enumerate(self.data_location)
         ]
-        kg_objects = authors + data_files
+        capabilities = [cap.to_kg_object() for cap in self.capabilities]
+        kg_objects = authors + data_files + capabilities
 
         def get_ontology_object(cls, value):
             return cls(value.value) if value else None
@@ -557,6 +650,7 @@ class ValidationTestPatch(BaseModel):
     data_modality: RecordingModality = None
     test_type: ValidationTestType = None
     score_type: ScoreType = None
+    requires: List[Capability] = None
 
     @classmethod
     def _check_not_empty(cls, field_name, value):
