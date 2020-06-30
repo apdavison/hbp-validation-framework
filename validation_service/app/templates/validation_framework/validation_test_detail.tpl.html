@@ -688,7 +688,7 @@
                     </thead>
                     <tbody>
                         <tr ng-repeat="model_instance in data_for_table.model_instances">
-                            <td colspan=2 class=tr-clickable ng-mousedown="Context.goToModelDetailView($event,model_instance.model_id,'validation')">model #{{model_instance.line_id}} </td>
+                            <td colspan=2 class=tr-clickable ng-click="Context.goToModelDetailViewClick($event,model_instance.model_id,'validation')" ng-mousedown="Context.goToModelDetailViewRightClick($event,model_instance.model_id,'validation')">model #{{model_instance.line_id}} </td>
 
                             <td colspan=2 ng-repeat="test_code in model_instance.test_instances">
                                 <div ng-if="test_code.results.length <= 3">

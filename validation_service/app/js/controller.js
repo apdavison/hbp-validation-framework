@@ -1344,6 +1344,7 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
     '$rootScope',
     '$http',
     '$location',
+    '$timeout',
     'ScientificModelRest',
     'CollabParameters',
     'IsCollabMemberOrAdminRest',
@@ -1351,17 +1352,23 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
     'Help',
     'DataHandler',
 
-    function($scope, $rootScope, $http, $location, ScientificModelRest, CollabParameters, IsCollabMemberOrAdminRest, Context, Help, DataHandler) {
+    function($scope, $rootScope, $http, $location, $timeout, ScientificModelRest, CollabParameters, IsCollabMemberOrAdminRest, Context, Help, DataHandler) {
 
         //pagination parameters
         $scope.itemsPerPages = 20;
         $scope.models = [];
-        $scope.total_models = 0;
+        
+        $scope.order_by = '-creation_date';
+        $scope.collab_ids_to_select = new Array();
 
-        $scope._change_empty_organization_string = function(models) {
+        $scope._change_empty_model_parameters = function(models) {
             for (var model in models.models) {
                 if (models.models[model].organization == "<<empty>>") {
                     models.models[model].organization = "";
+                }
+                // do not order the empty aliases after 'n' letter
+	        if (models.models[model].alias == null) {
+                    models.models[model].alias = "";
                 }
             }
             return models
@@ -1370,13 +1377,12 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
         $scope._get_collab_and_app_ids_from_models = function() {
             for (var i in $scope.models.models) {
                 if ($scope.models.models[i].app != null) {
-                    if ($scope.collab_ids_to_select.indexOf($scope.models.models[i].app.collab_id.toString()) == -1) {
-                        $scope.collab_ids_to_select.push($scope.models.models[i].app.collab_id.toString());
-                        $scope.collab_ids_to_select = $scope.collab_ids_to_select.sort();
+                    if ($scope.collab_ids_to_select.indexOf(Number($scope.models.models[i].app.collab_id)) == -1) {
+                        $scope.collab_ids_to_select.push(Number($scope.models.models[i].app.collab_id));
                     }
                 }
             }
-            $scope.$apply();
+            $scope.collab_ids_to_select.sort(function(a, b){return a - b});
         }
 
         $scope.formatAuthors = function(authors) {
@@ -1396,9 +1402,182 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
             }
         }
 
+        // JZ: critical part
+        $scope.organizationInnerComparator = function(value1, value2) {
+            var result = 0;
+            if (value1.substr(0,6) == 'HBP-SP' && value2.substr(0,6) == 'HBP-SP') {                
+                return Number(value1.substr(6,2)) < Number(value2.substr(6,2)) ? -1 : 1;
+            }
+            // Compare strings case-insensitively
+            value1 = value1.toLowerCase();
+            value2 = value2.toLowerCase();
+            
+            if (value1 !== value2) {
+                result = value1 < value2 ? -1 : 1;
+            }  
+
+            return result;
+        };
+
+        $scope.organizationComparator = function(v1, v2) {
+            // JZ copied from angular.js -- private defaultCompare function
+            var result = 0;
+            var type1 = v1.type;
+            var type2 = v2.type;
+
+            if (type1 === type2) {
+                var value1 = v1.value;
+                var value2 = v2.value;
+                if (type1 === 'string') {
+                    return $scope.organizationInnerComparator(value1, value2);
+                } else if (type1 === 'object') {
+           // For basic objects, use the position of the object
+           // in the collection instead of the value
+                   if (isObject(value1)) value1 = v1.index;
+                   if (isObject(value2)) value2 = v2.index;
+                }
+
+                if (value1 !== value2) {
+                    result = value1 < value2 ? -1 : 1;
+                }  
+
+            } else {
+                result = type1 < type2 ? -1 : 1;
+            }
+            return result;
+        };
+
+        $scope.switchSort = function(order_by)
+        {
+            var minus = false;
+            if ($scope.order_by.charAt(0) == '-') {
+                minus = true;
+                $scope.order_by = $scope.order_by.replace('-', '');
+            }            
+            if ($scope.order_by == order_by && minus == false)
+            {
+                $scope.order_by = '-' + $scope.order_by;
+            }
+            else {
+                $scope.order_by = order_by;
+            }
+        }
+
+        $scope.onBeforeShow_select = function(select) 
+        {
+            if (typeof select.$scope.$isDisabled === 'undefined') {
+               select.$scope.$isDisabled = []; 
+            }
+            if (typeof select.$scope.$localActive === 'undefined') {
+               select.$scope.$localActive = []; 
+            }
+
+            if (typeof select.$scope.$selectCustom === 'undefined') {            
+                select.$scope.$selectCustom = function(index, selectScope) 
+                {
+                    var mutex_array = ['interneuron', 'pyramidal cell', 'medium spiny neuron', 'network', 'subcellular', 'population modelling', 'spiking neurons', 'systems biology'];
+                    var value = selectScope.$matches[index].value; 
+                    if (selectScope.$localActive.indexOf(index) == -1) {
+                        selectScope.$localActive.push(index); // add
+                    }
+                    else {
+                        selectScope.$localActive.splice(selectScope.$localActive.indexOf(index), 1); // remove
+                    }
+                    // COLLAB_ID is number
+                    if (typeof selectScope.$matches[0].value === 'number') {
+                        selectScope.$select(index, 'click');
+                        return;
+                    }
+                    // check whether the currently selected item has duplicates
+                    for (var index_mutex in mutex_array) {
+                    if (value == mutex_array[index_mutex]) 
+                    {
+                    for (var index_other in selectScope.$matches) {
+                        if (index_other != index && selectScope.$matches[index_other].value.indexOf(mutex_array[index_mutex]) != -1) 
+                        {
+                            if (selectScope.$localActive.indexOf(index) == -1) // deselcted
+                            {  
+                                selectScope.$isDisabled[index_other] = false;
+                            }
+                            else { 
+                                selectScope.$isDisabled[index_other] = true;
+                            }
+                        }
+                    }
+                    } else if (value.indexOf(mutex_array[index_mutex]) != -1) // contains mutex as its part
+                    {
+                        var index_top; // index of the line with mutex
+                        var index_other;
+                        var toggle_top = true;
+
+                        for (index_top = 0; index_top < selectScope.$matches.length; index_top++) {
+                           if (selectScope.$matches[index_top].value == mutex_array[index_mutex]) 
+                           {
+                               toggle_top = true;
+                               for (index_other = 0; index_other < selectScope.$matches.length; index_other++) {
+                                   if (   index_other != index
+                                       && index_other != index_top
+                                       && selectScope.$matches[index_other].value.indexOf(mutex_array[index_mutex]) != -1
+                                       && selectScope.$localActive.indexOf(index_other) != -1)
+                                   {
+                                       toggle_top = false;
+                                       break;
+                                   }
+                               }
+                               if (toggle_top == true)
+                               {
+                                   if (selectScope.$localActive.indexOf(index) == -1) {
+                                       selectScope.$isDisabled[index_top] = false;
+                                   }
+                     	           else {
+                                       selectScope.$isDisabled[index_top] = true;
+                                   }
+                               }
+                           }
+                        }
+                    }
+                    }
+                    selectScope.$select(index, 'click');
+                };
+            } 
+
+            if (typeof select.$scope.$selectNoneCustom === 'undefined') {            
+                select.$scope.$selectNoneCustom = function(selectScope) {
+                    for (var i = 0; i < selectScope.$matches.length; i++) {
+                        if (selectScope.$localActive.indexOf(i) != -1 && !selectScope.$isDisabled[i]) {
+                            selectScope.$selectCustom(i, selectScope);
+                        }
+                    }
+                };
+            }
+
+            if (typeof select.$scope.$selectAllCustom === 'undefined') {            
+                select.$scope.$selectAllCustom = function(selectScope) {
+                    selectScope.$selectNoneCustom(selectScope);
+                    var mutex_array = ['interneuron', 'pyramidal cell', 'medium spiny neuron', 'network', 'subcellular', 'population modelling', 'spiking neurons', 'systems biology'];
+                    var i = 0;
+                    for (i = 0; i < selectScope.$matches.length; i++) {
+                        if (mutex_array.indexOf(selectScope.$matches[i].value) > -1) {
+                            selectScope.$selectCustom(i, selectScope);
+                        }
+                    }
+                    for (i = 0; i < selectScope.$matches.length; i++) {
+                        if (selectScope.$localActive.indexOf(i) == -1 && !selectScope.$isDisabled[i]) {
+                            selectScope.$selectCustom(i, selectScope);
+                        }
+                    }
+                };
+            }
+
+      };
+
+//        $scope.onSelect_cell_type = function(value, index, select) {
+
         $scope.$on('models_updated', function(event, models) {
-            $scope.models = $scope._change_empty_organization_string(models);
-            $scope.collab_ids_to_select = $scope._get_collab_and_app_ids_from_models();
+            $timeout(function() {
+                $scope.models = $scope._change_empty_model_parameters(models);
+                $scope._get_collab_and_app_ids_from_models();
+            });
         });
 
         Context.setService().then(function() {
@@ -1412,30 +1591,9 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
             };
             if (Context.getState() == "" || Context.getState() == undefined || Context.getState() == "n") {
 
-                DataHandler.loadModels({ app_id: $scope.app_id, page: 1 }).then(function(data) {
-                    $scope.total_models = data.total_models;
-                    $scope.nb_pages = data.total_nb_pages;
-                    $scope.maxSize = 5;
-                    $scope.current_page = 1;
-                    $scope.models = $scope._change_empty_organization_string(data);
-
-                    $scope.$apply();
-
-                    $('#status').fadeOut(); // will first fade out the loading animation
-                    $('#preloader').delay(350).fadeOut('slow'); // will fade out the white DIV that covers the website.
-                    $('body').delay(350).css({ 'overflow': 'visible' });
-
-                    var status = DataHandler.getCurrentStatus();
-                    if (status != "up_to_date") {
-                        DataHandler.loadModelsByPage($scope.app_id, $scope.nb_pages);
-                    }
-                });
-
                 Context.sendState("model", "n");
 
-
                 CollabParameters.setService($scope.ctx).then(function() {
-
                     $scope.model_privacy = [{ value: "true", name: "private" }, { value: "false", name: "public" }] //[{ "name": "private", "value": "true" }, { "name": "public", "value": "false" }];
 
                     $scope.collab_species = CollabParameters.getParametersOrDefaultByType("species");
@@ -1444,17 +1602,46 @@ ModelCatalogApp.controller('ModelCatalogCtrl', [
                     $scope.collab_model_scope = CollabParameters.getParametersOrDefaultByType("model_scope");
                     $scope.collab_abstraction_level = CollabParameters.getParametersOrDefaultByType("abstraction_level");
                     $scope.collab_organization = CollabParameters.getParametersOrDefaultByType("organization");
-                    $scope.collab_ids_to_select = new Array();
-                    $scope._get_collab_and_app_ids_from_models();
-                    // $scope.selected_collab = $scope.collab_ids_to_select //initialize
 
+                    // reorder organizations HBP-SP nummerically
+                    $scope.collab_organization.sort($scope.organizationInnerComparator);
 
-                    $scope.is_collab_member = false;
-                    $scope.is_collab_member = IsCollabMemberOrAdminRest.get({ app_id: $scope.app_id, });
-                    $scope.is_collab_member.$promise.then(function() {
-                        $scope.is_collab_member = $scope.is_collab_member.is_member;
+                    // $scope.selected_collab = $scope.collab_ids_to_select //initialize 
+                    DataHandler.isCollabMember($scope.app_id).then(function(data) {
+                        $scope.is_collab_member = data;
+                        $scope.$apply();
                     });
+
+                    var status = DataHandler.getCurrentStatus();
+                    if (status == "up_to_date" || status == "loading") {
+                        var data = DataHandler.loadStoredModels();
+                        $scope.models = $scope._change_empty_model_parameters(data);
+                        $scope._get_collab_and_app_ids_from_models();
+                        $scope.$apply();
+
+                        $('#status').fadeOut(); // will first fade out the loading animation 
+                        $('#preloader').delay(350).fadeOut('slow'); // will fade out the white DIV that covers the website. 
+                        $('body').delay(350).css({ 'overflow': 'visible' });
+                    }
+                    else {
+                    // if this function were outside promise, it could block the other two promises due to race condition
+                        DataHandler.loadModels({ app_id: $scope.app_id, page: 1 }).then(function(data) {
+
+                            $scope.nb_pages = data.total_nb_pages;
+                            // to make the models on the front page immediately visible and not need to wait for models_updated event
+                            $scope.models = $scope._change_empty_model_parameters(data);
+                            $scope.$apply();
+
+                            $('#status').fadeOut(); // will first fade out the loading animation 
+                            $('#preloader').delay(350).fadeOut('slow'); // will fade out the white DIV that covers the website. 
+                            $('body').delay(350).css({ 'overflow': 'visible' });
+
+                            DataHandler.loadModelsByPage($scope.app_id, $scope.nb_pages);
+                        });
+                    }
                 });
+
+
             } else {
                 var model_id = Context.getState();
                 Context.modelCatalog_goToModelDetailView(model_id);
@@ -1633,6 +1820,7 @@ ModelCatalogApp.controller('ModelCatalogCreateCtrl', ['$scope', '$rootScope', '$
 
         $scope.saveModel = function() {
 
+            $scope.model.private = Boolean($scope.model.private == 'true');
             if ($scope.model.alias != '' && $scope.model.alias != undefined) {
                 $scope.alias_is_valid = $scope.checkAliasValidity();
                 $scope.alias_is_valid.$promise.then(function() {
@@ -2127,44 +2315,83 @@ ParametersConfigurationApp.controller('ParametersConfigurationCtrl', ['$scope', 
 
         $scope.ctx, $scope.app_id, $scope.collab;
         $scope.list_params;
-        $scope.selected_data = {};
+	$scope.checkboxes = {
+            'data_modalities' : {},
+            'test_type' : {},
+            'model_scope' : {},
+            'abstraction_level' : {},
+            'organization' : {},
+            'species' : {},
+            'brain_region' : {},
+            'cell_type' : {}
+        };
+        $scope.select_all = {
+            'data_modalities' : false,
+            'test_type' : false,
+            'model_scope' : false,
+            'abstraction_level' : false,
+            'organization' : false,
+            'species' : false,
+            'brain_region' : false,
+            'cell_type' : false
+        };
+
+
+        $scope.select_all_fn = function(name) {
+            var item;
+            for (var key in $scope.checkboxes[name]) 
+            {
+                $scope.checkboxes[name][key] = $scope.select_all[name];
+            }
+        };
+
+        $scope.test_select_all = function(name) {
+            var all_true = true;
+            for (var key in $scope.checkboxes[name]) 
+            {
+                if ($scope.checkboxes[name][key] == false) {
+                    all_true = false;
+                    break;
+                }
+            }
+            if (all_true == true) {
+                $scope.select_all[name] = true;
+            }
+            else {
+                $scope.select_all[name] = false; 
+            }
+        };
+
 
         $scope.make_post = function() {
-            $scope.app_type = document.getElementById("app").getAttribute("value");
+//            $scope.app_type = document.getElementById("app").getAttribute("value");
 
             CollabParameters.initConfiguration();
 
-            $scope.selected_data.selected_data_modalities.forEach(function(value, i) {
-                CollabParameters.addParameter("data_modalities", value.authorized_value);
-            });
+            var addParamsFromCheckboxes = function(name) 
+            {
+                var item;
+                for (var key in $scope.checkboxes[name]) 
+                {
+                    item = $scope.checkboxes[name][key];
+                    if (item == true) {
+                        CollabParameters.addParameter(name, key);
+                    }
+                }
+            }
 
-            $scope.selected_data.selected_test_type.forEach(function(value, i) {
-                CollabParameters.addParameter("test_type", value.authorized_value);
-            });
 
-            $scope.selected_data.selected_model_scope.forEach(function(value, i) {
-                CollabParameters.addParameter("model_scope", value.authorized_value);
-            });
-
-            $scope.selected_data.selected_abstraction_level.forEach(function(value, i) {
-                CollabParameters.addParameter("abstraction_level", value.authorized_value);
-            });
-
-            $scope.selected_data.selected_species.forEach(function(value, i) {
-                CollabParameters.addParameter("species", value.authorized_value);
-            });
-
-            $scope.selected_data.selected_brain_region.forEach(function(value, i) {
-                CollabParameters.addParameter("brain_region", value.authorized_value);
-            });
-
-            $scope.selected_data.selected_cell_type.forEach(function(value, i) {
-                CollabParameters.addParameter("cell_type", value.authorized_value);
-            });
-
-            $scope.selected_data.selected_organization.forEach(function(value, i) {
-                CollabParameters.addParameter("organization", value.authorized_value);
-            });
+            addParamsFromCheckboxes('model_scope');
+            addParamsFromCheckboxes('abstraction_level');
+            addParamsFromCheckboxes('organization');
+            addParamsFromCheckboxes('species');
+            addParamsFromCheckboxes('brain_region');
+            addParamsFromCheckboxes('cell_type');
+            if ($scope.app_type == 'validation_app')
+            {
+                addParamsFromCheckboxes('data_modalities');
+                addParamsFromCheckboxes('test_type');
+            }
 
             CollabParameters.addParameter("app_type", $scope.app_type);
 
@@ -2172,10 +2399,17 @@ ParametersConfigurationApp.controller('ParametersConfigurationCtrl', ['$scope', 
 
             CollabParameters.put_parameters().$promise.then(function() {
                 CollabParameters.getRequestParameters().$promise.then(function() {});
-                alert("Your app has been configured")
+                alert("Your app been configured.");
+                window.parent.postMessage({
+                    eventName: 'workspace.switchMode',
+                    data: {
+                        mode: 'run'
+                    }
+                }, '*');
             });
 
         };
+
 
         Context.setService().then(function() {
 
@@ -2187,45 +2421,137 @@ ParametersConfigurationApp.controller('ParametersConfigurationCtrl', ['$scope', 
             $scope.list_param = AuthorizedCollabParameterRest.get({ ctx: $scope.ctx });
 
             $scope.list_param.$promise.then(function() {
-                $scope.data_modalities = $scope.list_param.data_modalities;
-                $scope.test_type = $scope.list_param.test_type;
+                if ($scope.app_type == 'validation_app')
+                {
+                    $scope.data_modalities = $scope.list_param.data_modalities;
+                    $scope.test_type = $scope.list_param.test_type;
+                }
                 $scope.model_scope = $scope.list_param.model_scope;
                 $scope.abstraction_level = $scope.list_param.abstraction_level;
                 $scope.species = $scope.list_param.species;
                 $scope.brain_region = $scope.list_param.brain_region;
                 $scope.cell_type = $scope.list_param.cell_type;
                 $scope.organization = $scope.list_param.organization;
+
+                if ($scope.app_type == 'validation_app')
+                {
+                    $scope.data_modalities.forEach(function(value, i) {
+            //JZ 2.8. due to the asynchronous call, the response could 
+            //reach before or after the next CollabParameters 
+                        if (typeof $scope.checkboxes['data_modalities'][value.authorized_value] === 'undefined') {
+                            $scope.checkboxes['data_modalities'][value.authorized_value] = false;
+                        }
+                    });
+                    $scope.test_select_all('data_modalities');
+                    $scope.test_type.forEach(function(value, i) {
+                        if (typeof $scope.checkboxes['test_type'][value.authorized_value] === 'undefined') {
+                            $scope.checkboxes['test_type'][value.authorized_value] = false;
+                        }
+                    });
+                    $scope.test_select_all('test_type');
+                }
+                $scope.model_scope.forEach(function(value, i) {
+                    if (typeof $scope.checkboxes['model_scope'][value.authorized_value] === 'undefined') {
+                        $scope.checkboxes['model_scope'][value.authorized_value] = false;
+                    }
+                });
+                $scope.test_select_all('model_scope');
+                $scope.abstraction_level.forEach(function(value, i) {
+                    if (typeof $scope.checkboxes['abstraction_level'][value.authorized_value] === 'undefined') {
+                         $scope.checkboxes['abstraction_level'][value.authorized_value] = false;
+                    }
+                });
+                $scope.test_select_all('abstraction_level');
+                $scope.organization.forEach(function(value, i) {
+                    if (typeof $scope.checkboxes['organization'][value.authorized_value] === 'undefined') {
+                        $scope.checkboxes['organization'][value.authorized_value] = false;
+                    }
+                });
+                $scope.test_select_all('organization');
+                $scope.species.forEach(function(value, i) {
+                    if (typeof $scope.checkboxes['species'][value.authorized_value] === 'undefined') {
+                        $scope.checkboxes['species'][value.authorized_value] = false;
+                    }
+                });
+                $scope.test_select_all('species');
+                $scope.brain_region.forEach(function(value, i) {
+                    if (typeof $scope.checkboxes['brain_region'][value.authorized_value] === 'undefined') {
+                        $scope.checkboxes['brain_region'][value.authorized_value] = false;
+                    }
+                });
+                $scope.test_select_all('brain_region');
+                $scope.cell_type.forEach(function(value, i) {
+                   if (typeof $scope.checkboxes['cell_type'][value.authorized_value] === 'undefined') {
+                       $scope.checkboxes['cell_type'][value.authorized_value] = false;
+                   }
+                });
+                $scope.test_select_all('cell_type');
             });
 
             CollabParameters.setService($scope.ctx).then(function() {
 
-                $scope.selected_data = {};
-                $scope.selected_data.selected_data_modalities = CollabParameters.getParameters_authorized_value_formated("data_modalities");
-                $scope.selected_data.selected_test_type = CollabParameters.getParameters_authorized_value_formated("test_type");
-                $scope.selected_data.selected_model_scope = CollabParameters.getParameters_authorized_value_formated("model_scope");
-                $scope.selected_data.selected_abstraction_level = CollabParameters.getParameters_authorized_value_formated("abstraction_level");
-                $scope.selected_data.selected_species = CollabParameters.getParameters_authorized_value_formated("species");
-                $scope.selected_data.selected_brain_region = CollabParameters.getParameters_authorized_value_formated("brain_region");
-                $scope.selected_data.selected_cell_type = CollabParameters.getParameters_authorized_value_formated("cell_type");
-                $scope.selected_data.selected_organization = CollabParameters.getParameters_authorized_value_formated("organization");
-
+                var selected_values;
+                if ($scope.app_type == 'validation_app')
+                {
+                    selected_values = CollabParameters.getParametersByType("data_modalities");
+                    selected_values.forEach(function(value, i) {
+                        $scope.checkboxes['data_modalities'][value] = true;
+                    });
+                    $scope.test_select_all('data_modalities');
+                    selected_values = CollabParameters.getParametersByType("test_type");
+                    selected_values.forEach(function(value, i) {
+                        $scope.checkboxes['test_type'][value] = true;
+                    });
+                    $scope.test_select_all('test_type');
+                }
+                selected_values = CollabParameters.getParametersByType("model_scope");
+                selected_values.forEach(function(value, i) {
+                    $scope.checkboxes['model_scope'][value] = true;
+                });
+                $scope.test_select_all('model_scope');
+                selected_values = CollabParameters.getParametersByType("abstraction_level");
+                selected_values.forEach(function(value, i) {
+                    $scope.checkboxes['abstraction_level'][value] = true;
+                });
+                $scope.test_select_all('abstraction_level');
+                selected_values = CollabParameters.getParametersByType("organization");
+                selected_values.forEach(function(value, i) {
+                    $scope.checkboxes['organization'][value] = true;
+                });
+                $scope.test_select_all('organization');
+                selected_values = CollabParameters.getParametersByType("species");
+                selected_values.forEach(function(value, i) {
+                    $scope.checkboxes['species'][value] = true;
+                });
+                $scope.test_select_all('species');
+                selected_values = CollabParameters.getParametersByType("brain_region");
+                selected_values.forEach(function(value, i) {
+                    $scope.checkboxes['brain_region'][value] = true;
+                });
+                $scope.test_select_all('brain_region');
+                selected_values = CollabParameters.getParametersByType("cell_type");
+                selected_values.forEach(function(value, i) {
+                    $scope.checkboxes['cell_type'][value] = true;
+                });
+                $scope.test_select_all('cell_type');
                 $scope.$apply();
-
             });
         });
     }
 ]);
 
 
-ParametersConfigurationApp.controller('ParametersConfigurationRedirectCtrl', ['$scope', '$rootScope', '$http', '$location', 'CollabParameters', 'AuthorizedCollabParameterRest', 'Context',
-    function($scope, $rootScope, $http, $location, CollabParameters, AuthorizedCollabParameterRest, Context) {
+ParametersConfigurationApp.controller('ParametersConfigurationRedirectCtrl', ['$state', '$scope', '$rootScope', '$http', '$location', 'CollabParameters', 'AuthorizedCollabParameterRest', 'Context',
+    function($state, $scope, $rootScope, $http, $location, CollabParameters, AuthorizedCollabParameterRest, Context) {
 
         $scope.init = function() {
-            var app_type = document.getElementById("app").getAttribute("value");
-            if (app_type == "model_catalog") {
-                $location.path('/modelparametersconfiguration');
-            } else if (app_type == "validation_app") {
-                $location.path('/validationparametersconfiguration');
+            $scope.app_type = document.getElementById("app").getAttribute("value");
+            if ($scope.app_type == "model_catalog") {
+//                $location.path('/modelparametersconfiguration');
+		$state.go('ModelParametersConfiguration');
+            } else if ($scope.app_type == "validation_app") {
+//                $location.path('/validationparametersconfiguration');
+		$state.go('ValidationParametersConfiguration');
             }
         }
 

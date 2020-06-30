@@ -116,8 +116,10 @@ class ScientificModel(models.Model):
     code_format = models.CharField(max_length=100 ,blank=True, help_text=".py, .c, etc...") # to remove, moved to Instance
     alias = models.CharField(max_length=200, unique=True, blank=True, null=True, default=None,  help_text="alias of the model")
     creation_date = models.DateTimeField(auto_now_add=True, help_text="creation date of the model")
-    organization = models.CharField(max_length=100 , blank=False, default="<<empty>>")
+    organization = models.CharField(max_length=100 , blank=False, default="<<empty>>", null=True)
     owner = models.TextField(max_length=100, blank=True, null = True)
+    parents = models.ManyToManyField("ScientificModel", symmetrical=False, related_name="subprojects")
+    pla_components = models.CharField(max_length=100, blank=False, null=True)
     project = models.TextField(max_length=100, blank=True, null = True) ##will be removed in KG
     license = models.TextField(max_length=200, blank=True, null=True)  # to remove, moved to Instance
     pla_components = models.CharField(max_length=100 , blank=False, null=True)
@@ -139,6 +141,7 @@ class ScientificModelInstance(models.Model):
     A specific instance of a model with a well defined version and parameterization.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, )
+    license = models.TextField(max_length=200, blank=True, null=True)
     model = models.ForeignKey(ScientificModel, related_name="instances", on_delete=models.CASCADE)
     version = models.CharField(max_length=200)
     description = models.TextField(null=True, blank=True)

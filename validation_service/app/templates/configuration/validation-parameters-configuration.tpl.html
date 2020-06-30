@@ -2,217 +2,131 @@
 <div>
     <div ng-controller="ParametersConfigurationCtrl">
 
-        <head>
-            <nav class="navbar ">
-                <h1 align=center> Validation framework: parameters configuration</h1>
-            </nav>
-        </head>
+        <div class="row">
+        <div class="col-lg-3">
+        <div class="panel panel-primary">
+            <div class="panel-heading checkbox">
+                Data modalities<label><input type="checkbox" ng-model="select_all['data_modalities']" ng-change="select_all_fn('data_modalities')" />Select All</label>
+            </div>
+            <div class="panel-body">
+                <div class="list-group list-group-border params-list-group checkbox">
+                    <label class="list-group-item params-list-group-item" ng-repeat="value in data_modalities">
+                        <input type="checkbox" ng-change="test_select_all('data_modalities')" ng-model="checkboxes['data_modalities'][value.authorized_value]" />{{value.authorized_value}}
+                    </label>
+                </div>
+            </div>
+        </div>
+        </div>
 
-        <table id="tableTest" class="table table-bordered">
-            <colgroup>
-                <col style="width: 25%" />
-                <col style="width: 25%" />
-                <col style="width: 25%" />
-                <col style="width: 25%" />
-            </colgroup>
+        <div class="col-lg-3">
+        <div class="panel panel-primary">
+            <div class="panel-heading checkbox">
+                Test type<label><input type="checkbox" ng-model="select_all['test_type']" ng-change="select_all_fn('test_type')" />Select All</label>
+            </div>
+            <div class="panel-body">
+                <div class="list-group list-group-border params-list-group test-type checkbox">
+                    <label class="list-group-item params-list-group-item" ng-repeat="value in test_type">
+                        <input type="checkbox" ng-change="test_select_all('test_type')" ng-model="checkboxes['test_type'][value.authorized_value]" />{{value.authorized_value}}
+                    </label>
+                </div>
+            </div>
+        </div>
+        </div>
 
-            <thead>
-                <tr>
-                    <th id="tab_title">
-                        <center>
-                            <h4> Data modalities </h4>
-                        </center>
-                    </th>
+        <div class="col-lg-3">
+        <div class="panel panel-primary">
+            <div class="panel-heading checkbox">
+                Model scope<label><input type="checkbox" ng-model="select_all['model_scope']" ng-change="select_all_fn('model_scope')" />Select All</label>
+            </div>
+            <div class="panel-body">
+                <div class="list-group list-group-border params-list-group checkbox">
+                    <label class="list-group-item params-list-group-item" ng-repeat="value in model_scope">
+                        <input type="checkbox" ng-change="test_select_all('model_scope')" ng-model="checkboxes['model_scope'][value.authorized_value]" />{{value.authorized_value}}
+                    </label>
+                </div>
+            </div>
+        </div>
+        </div>
 
-                    <th id="tab_title">
-                        <center>
-                            <h4>Test type</h4>
-                        </center>
+        <div class="col-lg-3">
+        <div class="panel panel-primary">
+            <div class="panel-heading checkbox">
+                Abstraction level<label><input type="checkbox" ng-model="select_all['abstraction_level']" ng-change="select_all_fn('abstraction_level')" />Select All</label>
+            </div>
+            <div class="panel-body">
+                <div class="list-group list-group-border params-list-group checkbox">
+                    <label class="list-group-item params-list-group-item" ng-repeat="value in abstraction_level">
+                        <input type="checkbox" ng-change="test_select_all('abstraction_level')" ng-model="checkboxes['abstraction_level'][value.authorized_value]" />{{value.authorized_value}}
+                    </label>
+                </div>
+            </div>
+        </div>
+        </div>
+        </div>
 
-                    </th>
-                    <th id="tab_title">
-                        <center>
-                            <h4>Model scope</h4>
-                        </center>
+        <div class="row">
+        <div class="col-lg-3">
+        <div class="panel panel-primary">
+            <div class="panel-heading checkbox">
+                Organization<label><input type="checkbox" ng-model="select_all['organization']" ng-change="select_all_fn('organization')" />Select All</label>
+            </div>
+            <div class="panel-body">
+                <div class="list-group list-group-border params-list-group checkbox">
+                    <label class="list-group-item params-list-group-item" ng-repeat="value in organization">
+                        <input type="checkbox" ng-change="test_select_all('organization')" ng-model="checkboxes['organization'][value.authorized_value]" />{{value.authorized_value}}
+                    </label>
+                </div>
+            </div>
+        </div>
+        </div>
 
-                    </th>
-                    <th id="tab_title">
-                        <center>
-                            <h4>Abstraction level</h4>
-                        </center>
+        <div class="col-lg-3">
+        <div class="panel panel-primary">
+            <div class="panel-heading checkbox">
+                Species<label><input type="checkbox" ng-model="select_all['species']" ng-change="select_all_fn('species')" />Select All</label>
+            </div>
+            <div class="panel-body">
+                <div class="list-group list-group-border params-list-group checkbox">
+                    <label class="list-group-item params-list-group-item" ng-repeat="value in species">
+                        <input type="checkbox" ng-change="test_select_all('species')" ng-model="checkboxes['species'][value.authorized_value]" />{{value.authorized_value}}
+                    </label>
+                </div>
+            </div>
+        </div>
+        </div>
 
-                    </th>
-                </tr>
+        <div class="col-lg-3">
+        <div class="panel panel-primary">
+            <div class="panel-heading checkbox">
+                Brain region<label><input type="checkbox" ng-model="select_all['brain_region']" ng-change="select_all_fn('brain_region')" />Select All</label>
+            </div>
+            <div class="panel-body">
+                <div class="list-group list-group-border params-list-group checkbox">
+                    <label class="list-group-item params-list-group-item" ng-repeat="value in brain_region">
+                        <input type="checkbox" ng-change="test_select_all('brain_region')" ng-model="checkboxes['brain_region'][value.authorized_value]" />{{value.authorized_value}}
+                    </label>
+                </div>
+            </div>
+        </div>
+        </div>
 
-            </thead>
-            <tbody>
-                <td>
-                    <multiselect id="buttonTest" ng-size="10" placeholder="select" ng-model="selected_data.selected_data_modalities" options="data_modalities " display-prop="authorized_value" id-prop="id" show-search="true" show-select-all="true" show-unselect-all="true">
-                    </multiselect>
-                    <table class="table">
-                        <thead></thead>
-                        <tbody>
-                            <tr ng-repeat="(key, value) in selected_data.selected_data_modalities">
-                                <td>{{value.authorized_value}}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
+        <div class="col-lg-3">
+        <div class="panel panel-primary">
+            <div class="panel-heading checkbox">
+                Cell type<label><input type="checkbox" ng-model="select_all['cell_type']" ng-change="select_all_fn('cell_type')" />Select All</label>
+            </div>
+            <div class="panel-body">
+                <div class="list-group list-group-border params-list-group checkbox">
+                    <label class="list-group-item params-list-group-item" ng-repeat="value in cell_type">
+                        <input type="checkbox" ng-change="test_select_all('cell_type')" ng-model="checkboxes['cell_type'][value.authorized_value]" />{{value.authorized_value}}
+                    </label>
+                </div>
+            </div>
+        </div>
+        </div>
+        </div>
 
-                <td>
-                    <multiselect id="buttonTest" placeholder="select" ng-model="selected_data.selected_test_type" options="test_type " display-prop="authorized_value" id-prop="id" show-search="true" show-select-all="true" show-unselect-all="true">
-                    </multiselect>
-                    <table class="table">
-                        <thead></thead>
-
-                        <tbody>
-                            <tr ng-repeat="(key, value) in selected_data.selected_test_type">
-                                <td>{{value.authorized_value}}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-
-                <td>
-                    <multiselect placeholder="select" ng-model="selected_data.selected_model_scope" options="model_scope" display-prop="authorized_value" id-prop="id" show-search="true" show-select-all="true" show-unselect-all="true">
-                    </multiselect>
-                    <table class="table">
-                        <thead></thead>
-
-                        <tbody>
-                            <tr ng-repeat="(key, value) in selected_data.selected_model_scope">
-                                <td>{{value.authorized_value}}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-                <td>
-                    <multiselect placeholder="select" ng-model="selected_data.selected_abstraction_level" options="abstraction_level" display-prop="authorized_value" id-prop="id" show-search="true" show-select-all="true" show-unselect-all="true">
-                    </multiselect>
-                    <table class="table">
-                        <thead></thead>
-
-                        <tbody>
-                            <tr ng-repeat="(key, value) in selected_data.selected_abstraction_level">
-                                <td>{{value.authorized_value}}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tbody>
-        </table>
-        </br>
-
-
-
-
-
-        <table id="tableTest" class="table table-bordered">
-            <colgroup>
-                <col style="width: 25%" />
-                <col style="width: 25%" />
-                <col style="width: 25%" />
-                <col style="width: 25%" />
-            </colgroup>
-
-            <thead>
-                <tr>
-                    <th id="tab_title">
-                        <center>
-                            <h4>Species</h4>
-                        </center>
-
-                    </th>
-                    <th id="tab_title">
-                        <center>
-                            <h4>Brain region</h4>
-                        </center>
-
-
-                    </th>
-                    <th id="tab_title">
-                        <center>
-                            <h4>Cell type</h4>
-                        </center>
-
-
-                    </th>
-                    <th id="tab_title">
-                        <center>
-                            <h4>Organization</h4>
-                        </center>
-
-                    </th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <td>
-                    <multiselect placeholder="select" ng-model="selected_data.selected_species" options="species" display-prop="authorized_value" id-prop="id" show-search="true" show-select-all="true" show-unselect-all="true"></multiselect>
-                    <table class="table">
-                        <thead></thead>
-
-                        <tbody>
-                            <tr ng-repeat="(key, value) in selected_data.selected_species">
-                                <td>{{value.authorized_value}}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-
-                <td>
-                    <multiselect placeholder="select" ng-model="selected_data.selected_brain_region" options="brain_region" display-prop="authorized_value" id-prop="id" show-search="true" show-select-all="true" show-unselect-all="true"></multiselect>
-                    <table class="table">
-                        <thead></thead>
-
-                        <tbody>
-                            <tr ng-repeat="(key, value) in selected_data.selected_brain_region">
-                                <td>{{value.authorized_value}}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-
-                <td>
-                    <multiselect placeholder="select" ng-model="selected_data.selected_cell_type" options="cell_type" display-prop="authorized_value" id-prop="id" show-search="true" show-select-all="true" show-unselect-all="true"></multiselect>
-                    <table class="table">
-                        <thead></thead>
-
-                        <tbody>
-                            <tr ng-repeat="(key, value) in selected_data.selected_cell_type">
-                                <td>{{value.authorized_value}}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-                <td>
-                    <multiselect placeholder="select" ng-model="selected_data.selected_organization" options="organization" display-prop="authorized_value" id-prop="id" show-search="true" show-select-all="true" show-unselect-all="true">
-                    </multiselect>
-                    <table class="table">
-                        <thead></thead>
-
-                        <tbody>
-                            <tr ng-repeat="(key, value) in selected_data.selected_organization">
-                                <td>{{value.authorized_value}}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tbody>
-        </table>
-
-
-
-
-        </br>
-        <table>
-            <tr>
-                <td>
-                    <button class="button-MC" ng-click="make_post();">Save</button>
-                </td>
-            </tr>
-
-        </table>
+        <p><button class="btn btn-primary" ng-click="make_post();">Save</button></p>
 
     </div>
 
