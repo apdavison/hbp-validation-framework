@@ -832,6 +832,40 @@ class File(BaseModel):
         return None
 
 
+class ValidationResultSummary(BaseModel):
+    id: UUID = None
+    model_instance_id: UUID
+    test_instance_id: UUID
+    test_version: str
+    score: float
+    timestamp: datetime = None
+    model_id: UUID
+    model_name: str
+    model_alias: str = None
+    model_version: str = None
+    test_id: UUID
+    test_name: str
+    test_alias: str = None
+
+    @classmethod
+    def from_kg_query(cls, result):
+        return cls(
+            id=uuid_from_uri(result["uri"]),
+            model_instance_id=uuid_from_uri(result["model_instance"][0]["model_instance_id"]),
+            test_instance_id=uuid_from_uri(result["test_instance"][0]["test_instance_id"]),
+            test_version=result["test_instance"][0]["test_instance_version"],
+            score=result["score"],
+            timestamp=ensure_has_timezone(date_parser.parse(result["timestamp"])),
+            model_id=uuid_from_uri(result["model_instance"][0]["model"][0]["model_id"]),  # beware possibility of multiple models with different schema versions here
+            model_name=result["model_instance"][0]["model"][0]["model_name"],
+            model_alias=result["model_instance"][0]["model"][0]["model_alias"],
+            model_version=result["model_instance"][0]["model_instance_version"],
+            test_id=uuid_from_uri(result["test_instance"][0]["test"][0]["test_id"]),
+            test_name=result["test_instance"][0]["test"][0]["test_name"],
+            test_alias=result["test_instance"][0]["test"][0]["test_alias"],
+        )
+
+
 class ValidationResult(BaseModel):
     id: UUID = None
     uri: HttpUrl = None
