@@ -261,7 +261,7 @@ class ModelDetail extends React.Component {
     }
 
     getModelResults = () => {
-        let url = baseUrl + "/results-extended/?model_id=" + this.props.modelData.id + "&size=" + querySizeLimit;
+        let url = baseUrl + "/results-summary/?model_id=" + this.props.modelData.id + "&size=" + querySizeLimit;
         let config = {
             cancelToken: this.signal.token,
             headers: {
