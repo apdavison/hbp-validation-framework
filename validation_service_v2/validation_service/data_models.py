@@ -937,6 +937,8 @@ class ValidationResultSummary(BaseModel):
     test_instance_id: UUID
     test_version: str
     score: float
+    score_type: str
+    data_type: str
     timestamp: datetime = None
     model_id: UUID
     model_name: str
@@ -954,6 +956,8 @@ class ValidationResultSummary(BaseModel):
             test_instance_id=uuid_from_uri(result["test_instance"][0]["test_instance_id"]),
             test_version=result["test_instance"][0]["test_instance_version"],
             score=result["score"],
+            score_type=result["test_instance"][0]["test"][0]["score_type"],
+            data_type=result["test_instance"][0]["test"][0]["data_type"],
             timestamp=ensure_has_timezone(date_parser.parse(result["timestamp"])),
             model_id=uuid_from_uri(result["model_instance"][0]["model"][0]["model_id"]),  # beware possibility of multiple models with different schema versions here
             model_name=result["model_instance"][0]["model"][0]["model_name"],
