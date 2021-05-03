@@ -215,7 +215,7 @@ export default class TestInstanceEditForm extends React.Component {
                         Cancel
           </Button>
                     <Button onClick={this.handleSubmit} color="primary">
-                        Edit Test Instance
+                        Save changes
           </Button>
                 </DialogActions>
             </Dialog>

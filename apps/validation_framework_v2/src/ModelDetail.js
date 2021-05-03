@@ -110,7 +110,7 @@ class ModelDetail extends React.Component {
             error: null,
             auth: authContext,
             canEdit: false,
-            compareFlag: this.props.modelData.instances.length === 0 ? null : this.checkCompareStatus()
+            compareFlag: null
         };
         if (DevMode) {
             this.state['results'] = result_data.results;
@@ -145,15 +145,15 @@ class ModelDetail extends React.Component {
         this.props.updateCurrentModelData(updatedModelData);
     }
 
-    checkCompareStatus() {
+    checkCompareStatus(modelData) {
         // required since model could have been added to compare via table listing
         let [compareModels,] = this.context.compareModels;
         // check if model exists in compare
-        if (!(this.props.modelData.id in compareModels)) {
+        if (!(modelData.id in compareModels)) {
             return false;
         }
-        let model_inst_ids = this.props.modelData.instances.map(item => item.id).sort()
-        let compare_model_inst_ids = Object.keys(compareModels[this.props.modelData.id].selected_instances).sort()
+        let model_inst_ids = modelData.instances.map(item => item.id).sort()
+        let compare_model_inst_ids = Object.keys(compareModels[modelData.id].selected_instances).sort()
         // check if all the model instances already added to compare
         console.log(model_inst_ids.toString());
         console.log(compare_model_inst_ids.toString());
@@ -281,7 +281,8 @@ class ModelDetail extends React.Component {
                 this.props.updateCurrentModelData(res.data);
                 this.setState({
                     loadingExtended: false,
-                    error: null
+                    error: null,
+                    compareFlag: res.data.instances.length === 0 ? null : this.checkCompareStatus(res.data)
                 });
             })
             .catch(err => {
@@ -390,6 +391,7 @@ class ModelDetail extends React.Component {
                                             modelScope={this.props.modelData.model_scope}
                                             canEdit={this.state.canEdit}
                                             results={this.state.results}
+                                            loading={this.state.loadingExtended}
                                             addModelInstanceCompare={this.addModelInstanceCompare}
                                             removeModelInstanceCompare={this.removeModelInstanceCompare}
                                             onAddModelInstance={this.props.onAddModelInstance}

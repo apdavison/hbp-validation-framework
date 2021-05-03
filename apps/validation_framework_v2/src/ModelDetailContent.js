@@ -11,6 +11,7 @@ import { withSnackbar } from 'notistack';
 import React from 'react';
 import ContextMain from './ContextMain';
 import ErrorDialog from './ErrorDialog';
+import LoadingIndicator from './LoadingIndicator';
 import Markdown from './Markdown';
 import ModelInstanceAddForm from './ModelInstanceAddForm';
 import ModelInstanceEditForm from './ModelInstanceEditForm';
@@ -239,6 +240,18 @@ class ModelDetailContent extends React.Component {
                 </Button>)
         }
 
+        let noInstances = "";
+        if (this.props.loading) {
+            noInstances = <LoadingIndicator />
+        } else {
+            noInstances = (
+                <Typography variant="h6">
+                    <br />
+                    No model instances have yet been registered for this model.
+                </Typography>
+            )
+        }
+
         return (
             <React.Fragment>
                 {console.log(this.state.instancesWithResults)}
@@ -261,10 +274,7 @@ class ModelDetailContent extends React.Component {
                         {
                             (this.props.instances.length === 0)
                                 ?
-                                <Typography variant="h6">
-                                    <br />
-                                    No model instances have yet been registered for this model.
-                                </Typography>
+                                noInstances
                                 :
                                 this.props.instances.map(instance => (
                                     <Box my={2} pb={0} style={{ backgroundColor: Theme.lightBackground }} key={instance.id}>

@@ -177,6 +177,9 @@ class ValidationFramework extends React.Component {
         this.updateCurrentModel= this.updateCurrentModel.bind(this);
         this.handleAddModelInstance = this.handleAddModelInstance.bind(this);
         this.handleEditModelInstance = this.handleEditModelInstance.bind(this);
+        this.updateCurrentTest= this.updateCurrentTest.bind(this);
+        this.handleAddTestInstance = this.handleAddTestInstance.bind(this);
+        this.handleEditTestInstance = this.handleEditTestInstance.bind(this);
     }
 
     modelTableFullWidth() {
@@ -273,6 +276,38 @@ class ValidationFramework extends React.Component {
             updateHash("test_id." + currentTest.id);
             showNotification(this.props.enqueueSnackbar, this.props.closeSnackbar, "Test has been added!", "info")
         }
+    }
+
+    updateCurrentTest(updatedTest) {
+        let updatedTestData = [...this.state.testData];
+        for (let i = 0; i < updatedTestData.length; i++) {
+            if (updatedTestData[i].id === updatedTest.id) {
+                updatedTestData[i] = updatedTest;
+                break;
+            }
+        }
+        console.log("Updated current test");
+        console.log(updatedTest);
+        this.setState({
+            testData: updatedTestData,
+            currentTest: updatedTest
+        });
+    }
+
+    handleAddTestInstance(newTestInstance) {
+        let updatedCurrentTest = this.state.currentTest; // need to copy?
+        updatedCurrentTest.instances.push(newTestInstance);
+        this.updateCurrentTest(updatedCurrentTest);
+    }
+
+    handleEditTestInstance(updatedTestInstance) {
+        let updatedCurrentTest = this.state.currentTest;
+        for (let i = 0; i < updatedCurrentTest.instances.length; i++) {
+            if (updatedCurrentTest.instances[i].id === updatedTestInstance.id) {
+                updatedCurrentTest.instances[i] = updatedTestInstance;
+            }
+        }
+        this.updateCurrentTest(updatedCurrentTest);
     }
 
     componentDidMount() {
@@ -704,7 +739,7 @@ class ValidationFramework extends React.Component {
                     'Authorization': 'Bearer ' + this.props.auth.token,
                 }
             }
-            let url = baseUrl + "/tests/?" + encodeURI(query) + "&size=" + querySizeLimit;
+            let url = baseUrl + "/tests/?" + encodeURI(query) + "&size=" + querySizeLimit + "&summary=true";
             this.setState({ loadingTest: true });
             axios.get(url, config)
                 .then(res => {
@@ -958,7 +993,13 @@ class ValidationFramework extends React.Component {
         }
 
         if (this.state.currentTest) {// && this.state.display!=="Only Models") {
-            testDetail = <TestDetail open={this.state.testDetailOpen} testData={this.state.currentTest} onClose={this.handleTestDetailClose} auth={this.props.auth} />;
+            testDetail = <TestDetail open={this.state.testDetailOpen}
+                                     testData={this.state.currentTest}
+                                     onClose={this.handleTestDetailClose}
+                                     auth={this.props.auth}
+                                     updateCurrentTestData={this.updateCurrentTest}
+                                     onAddTestInstance={this.handleAddTestInstance}
+                                     onEditTestInstance={this.handleEditTestInstance} />;
         }
 
         if (this.state.currentResult) {

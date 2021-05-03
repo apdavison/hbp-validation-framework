@@ -622,14 +622,15 @@ class ValidationTest(BaseModel):
     # todo: add "publication" field
 
     @classmethod
-    def from_kg_object(cls, test_definition, client, recently_saved_scripts=[]):
+    def from_kg_object(cls, test_definition, client, recently_saved_scripts=None):
         # due to the time it takes for Nexus to become consistent, we add newly saved scripts
         # to the result of the KG query in case they are not yet included
         scripts = {
             scr.id: scr for scr in as_list(test_definition.scripts.resolve(client, api="nexus"))
         }
-        for script in recently_saved_scripts:
-            scripts[id] = script
+        if recently_saved_scripts:
+            for script in recently_saved_scripts:
+                scripts[id] = script
         instances = [
             ValidationTestInstance.from_kg_object(inst, client) for inst in scripts.values()
         ]
@@ -702,6 +703,49 @@ class ValidationTest(BaseModel):
             kg_objects.extend(instance.to_kg_objects(test_definition))
 
         return kg_objects
+
+
+class ValidationTestSummary(BaseModel):
+    id: UUID = None
+    uri: HttpUrl = None
+    name: str
+    alias: str = None
+    implementation_status: ImplementationStatus = ImplementationStatus.proposal
+    author: List[Person]
+    cell_type: CellType = None
+    brain_region: BrainRegion = None
+    species: Species = None
+    description: str  # was 'protocol', renamed for consistency with models
+    date_created: datetime = None
+    data_type: str = None
+    recording_modality: RecordingModality = None
+    test_type: ValidationTestType = None
+    score_type: ScoreType = None
+
+    @classmethod
+    def from_kg_object(cls, test_definition, client):
+        obj = cls(
+            id=test_definition.uuid,
+            uri=test_definition.id,
+            name=test_definition.name,
+            alias=test_definition.alias,
+            implementation_status=test_definition.status or ImplementationStatus.proposal.value,
+            author=[Person.from_kg_object(p, client) for p in as_list(test_definition.authors)],
+            cell_type=test_definition.celltype.label if test_definition.celltype else None,
+            brain_region=test_definition.brain_region.label
+            if test_definition.brain_region
+            else None,
+            species=test_definition.species.label if test_definition.species else None,
+            description=test_definition.description,
+            date_created=test_definition.date_created,
+            data_type=test_definition.data_type,
+            recording_modality=test_definition.recording_modality
+            if test_definition.recording_modality
+            else None,
+            test_type=test_definition.test_type if test_definition.test_type else None,
+            score_type=test_definition.score_type if test_definition.score_type else None
+        )
+        return obj
 
 
 class ValidationTestPatch(BaseModel):
