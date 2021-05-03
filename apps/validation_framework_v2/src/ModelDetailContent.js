@@ -136,7 +136,6 @@ class ModelDetailContent extends React.Component {
         this.state = {
             openAddInstanceForm: false,
             openEditInstanceForm: false,
-            instances: this.props.instances,
             instancesWithResults: this.props.results ? [...new Set(this.props.results.map(a => a.model_instance_id))] : null,
             currentInstance: null,
             errorEditModelInstance: null
@@ -163,11 +162,7 @@ class ModelDetailContent extends React.Component {
         console.log(newModelInstance)
         this.setState({ 'openAddInstanceForm': false });
         if (newModelInstance) {
-            let instances = this.state.instances;
-            instances.push(newModelInstance)
-            this.setState({
-                instances: instances,
-            });
+            this.props.onAddModelInstance(newModelInstance);
             showNotification(this.props.enqueueSnackbar, this.props.closeSnackbar, "Model instance added!", "success")
         }
     }
@@ -177,10 +172,7 @@ class ModelDetailContent extends React.Component {
         console.log(modelInstance)
         this.setState({ 'openEditInstanceForm': false });
         if (modelInstance) {
-            let instances = this.state.instances;
-            this.setState({
-                instances: instances.map(obj => [modelInstance].find(o => o.id === obj.id) || obj)
-            });
+            this.props.onEditModelInstance(modelInstance);
             showNotification(this.props.enqueueSnackbar, this.props.closeSnackbar, "Model instance edited!", "success")
         }
     }
@@ -267,14 +259,14 @@ class ModelDetailContent extends React.Component {
                             </Grid>
                         </Grid>
                         {
-                            (this.state.instances.length === 0)
+                            (this.props.instances.length === 0)
                                 ?
                                 <Typography variant="h6">
                                     <br />
                                     No model instances have yet been registered for this model.
                                 </Typography>
                                 :
-                                this.state.instances.map(instance => (
+                                this.props.instances.map(instance => (
                                     <Box my={2} pb={0} style={{ backgroundColor: Theme.lightBackground }} key={instance.id}>
                                         <Grid container style={{ display: "flex", alignItems: "center", backgroundColor: Theme.tableHeader }}>
                                             <Grid item xs={6}>

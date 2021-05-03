@@ -97,12 +97,17 @@ class ModelDetail extends React.Component {
         super(props, context);
         const [authContext,] = this.context.auth;
 
+        let modelData = this.props.modelData;
+        if (modelData.instances === null) {
+            modelData.instances = [];
+        }
+
         this.state = {
             tabValue: 0,
             results: null,
             loadingResult: true,
+            loadingExtended: true,
             error: null,
-            modelData: this.props.modelData,
             auth: authContext,
             canEdit: false,
             compareFlag: this.props.modelData.instances.length === 0 ? null : this.checkCompareStatus()
@@ -110,6 +115,7 @@ class ModelDetail extends React.Component {
         if (DevMode) {
             this.state['results'] = result_data.results;
             this.state['loadingResult'] = false;
+            this.state['loadingExtended'] = false;
         }
         this.updateCurrentModelData = this.updateCurrentModelData.bind(this);
         this.checkCompareStatus = this.checkCompareStatus.bind(this);
@@ -120,10 +126,12 @@ class ModelDetail extends React.Component {
         this.handleClose = this.handleClose.bind(this);
         this.handleTabChange = this.handleTabChange.bind(this);
         this.checkEditAccess = this.checkEditAccess.bind(this);
+        this.getExtendedData =  this.getExtendedData.bind(this);
     }
 
     componentDidMount() {
         if (!DevMode) {
+            this.getExtendedData();
             this.getModelResults();
             this.checkEditAccess();
         }
@@ -134,9 +142,7 @@ class ModelDetail extends React.Component {
     }
 
     updateCurrentModelData(updatedModelData) {
-        this.setState({
-            modelData: updatedModelData
-        })
+        this.props.updateCurrentModelData(updatedModelData);
     }
 
     checkCompareStatus() {
@@ -162,7 +168,7 @@ class ModelDetail extends React.Component {
         console.log("Add item to compare.")
         let [compareModels, setCompareModels] = this.context.compareModels;
         console.log(compareModels);
-        let model = this.state.modelData;
+        let model = this.props.modelData;
         // check if model already added to compare
         if (!(model.id in compareModels)) {
             compareModels[model.id] = {
@@ -191,7 +197,7 @@ class ModelDetail extends React.Component {
         console.log("Remove item from compare.")
         let [compareModels, setCompareModels] = this.context.compareModels;
         console.log(compareModels);
-        let model = this.state.modelData;
+        let model = this.props.modelData;
         // remove if model exists for compare
         if (model.id in compareModels) {
             delete compareModels[model.id];
@@ -206,7 +212,7 @@ class ModelDetail extends React.Component {
         console.log("Add instance to compare.")
         let [compareModels, setCompareModels] = this.context.compareModels;
         console.log(compareModels);
-        let model = this.state.modelData;
+        let model = this.props.modelData;
         // check if model already added to compare
         if (!(model.id in compareModels)) {
             compareModels[model.id] = {
@@ -235,7 +241,7 @@ class ModelDetail extends React.Component {
         console.log("Remove instance from compare.")
         let [compareModels, setCompareModels] = this.context.compareModels;
         console.log(compareModels);
-        let model = this.state.modelData;
+        let model = this.props.modelData;
         if (model.id in compareModels) {
             if (model_inst_id in compareModels[model.id].selected_instances) {
                 delete compareModels[model.id].selected_instances[model_inst_id];
@@ -260,7 +266,39 @@ class ModelDetail extends React.Component {
         this.setState({ tabValue: newValue })
     }
 
-    getModelResults = () => {
+    getExtendedData() {
+        const url = baseUrl + "/models/" + this.props.modelData.id;
+        const config = {
+            cancelToken: this.signal.token,
+            headers: {
+                'Authorization': 'Bearer ' + this.state.auth.token,
+            }
+        }
+        return axios.get(url, config)
+            .then(res => {
+                console.log("Retrieved full model data");
+                console.log(res.data);
+                this.props.updateCurrentModelData(res.data);
+                this.setState({
+                    loadingExtended: false,
+                    error: null
+                });
+            })
+            .catch(err => {
+                if (axios.isCancel(err)) {
+                    console.log('Error: ', err.message);
+                } else {
+                    // Something went wrong. Save the error in state and re-render.
+                    this.setState({
+                        loadingExtended: false,
+                        error: err
+                    });
+                }
+            }
+            );
+    };
+
+    getModelResults() {
         let url = baseUrl + "/results-summary/?model_id=" + this.props.modelData.id + "&size=" + querySizeLimit;
         let config = {
             cancelToken: this.signal.token,
@@ -287,13 +325,13 @@ class ModelDetail extends React.Component {
                     });
                 }
             }
-            );
+        );
     };
 
     checkEditAccess() {
         const url = baseUrl + "/projects";
         const config = {headers: {'Authorization': 'Bearer ' + this.state.auth.token}};
-        let model = this.state.modelData;
+        let model = this.props.modelData;
         axios.get(url, config)
             .then(res => {
                 res.data.forEach(proj => {
@@ -310,7 +348,7 @@ class ModelDetail extends React.Component {
     }
 
     render() {
-        console.log(this.state.modelData)
+        console.log(this.props.modelData)
         return (
             <Dialog fullScreen onClose={this.handleClose} aria-labelledby="simple-dialog-title" open={this.props.open}>
                 <MyDialogTitle onClose={this.handleClose} />
@@ -318,14 +356,14 @@ class ModelDetail extends React.Component {
                     <Grid container spacing={3}>
                         <Grid item xs={12}>
                             <ModelDetailHeader
-                                name={this.state.modelData.name}
-                                authors={formatAuthors(this.state.modelData.author)}
-                                private={this.state.modelData.private}
-                                id={this.state.modelData.id}
-                                alias={this.state.modelData.alias}
-                                dateCreated={this.state.modelData.date_created}
-                                owner={formatAuthors(this.state.modelData.owner)}
-                                modelData={this.state.modelData}
+                                name={this.props.modelData.name}
+                                authors={formatAuthors(this.props.modelData.author)}
+                                private={this.props.modelData.private}
+                                id={this.props.modelData.id}
+                                alias={this.props.modelData.alias}
+                                dateCreated={this.props.modelData.date_created}
+                                owner={formatAuthors(this.props.modelData.owner)}
+                                modelData={this.props.modelData}
                                 canEdit={this.state.canEdit}
                                 updateCurrentModelData={this.updateCurrentModelData}
                                 compareFlag={this.state.compareFlag}
@@ -346,40 +384,42 @@ class ModelDetail extends React.Component {
                                 <Grid container spacing={3}>
                                     <Grid item xs={9}>
                                         <ModelDetailContent
-                                            description={this.state.modelData.description}
-                                            instances={this.state.modelData.instances}
-                                            id={this.state.modelData.id}
-                                            modelScope={this.state.modelData.model_scope}
+                                            description={this.props.modelData.description}
+                                            instances={this.props.modelData.instances}
+                                            id={this.props.modelData.id}
+                                            modelScope={this.props.modelData.model_scope}
                                             canEdit={this.state.canEdit}
                                             results={this.state.results}
                                             addModelInstanceCompare={this.addModelInstanceCompare}
                                             removeModelInstanceCompare={this.removeModelInstanceCompare}
+                                            onAddModelInstance={this.props.onAddModelInstance}
+                                            onEditModelInstance={this.props.onEditModelInstance}
                                         />
                                     </Grid>
                                     <Grid item xs={3}>
                                         <ModelDetailMetadata
-                                            species={this.state.modelData.species}
-                                            brainRegion={this.state.modelData.brain_region}
-                                            cellType={this.state.modelData.cell_type}
-                                            modelScope={this.state.modelData.model_scope}
-                                            abstractionLevel={this.state.modelData.abstraction_level}
-                                            projectID={this.state.modelData.project_id}
-                                            organization={this.state.modelData.organization}
+                                            species={this.props.modelData.species}
+                                            brainRegion={this.props.modelData.brain_region}
+                                            cellType={this.props.modelData.cell_type}
+                                            modelScope={this.props.modelData.model_scope}
+                                            abstractionLevel={this.props.modelData.abstraction_level}
+                                            projectID={this.props.modelData.project_id}
+                                            organization={this.props.modelData.organization}
                                         />
                                     </Grid>
                                 </Grid>
                             </TabPanel>
                             <TabPanel value={this.state.tabValue} index={1}>
                                 <ModelResultOverview
-                                    id={this.state.modelData.id}
-                                    modelJSON={this.state.modelData}
+                                    id={this.props.modelData.id}
+                                    modelJSON={this.props.modelData}
                                     results={this.state.results}
                                     loadingResult={this.state.loadingResult}
                                 />
                             </TabPanel>
                             <TabPanel value={this.state.tabValue} index={2}>
                                 <ResultGraphs
-                                    id={this.state.modelData.id}
+                                    id={this.props.modelData.id}
                                     results={this.state.results}
                                     loadingResult={this.state.loadingResult}
                                 />
