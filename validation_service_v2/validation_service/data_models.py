@@ -937,8 +937,8 @@ class ValidationResultSummary(BaseModel):
     test_instance_id: UUID
     test_version: str
     score: float
-    score_type: str
-    data_type: str
+    score_type: str = None
+    data_type: str = None
     timestamp: datetime = None
     model_id: UUID
     model_name: str
