@@ -985,7 +985,10 @@ class ValidationResult(BaseModel):
     @classmethod
     def from_kg_object(cls, result, client):
         if result.generated_by:
-            validation_activity = result.generated_by.resolve(client, api="nexus")
+            try:
+                validation_activity = result.generated_by.resolve(client, api="nexus")
+            except Exception as err:
+                raise ConsistencyError from err
         else:
             raise ConsistencyError("Missing ValidationActivity")
         if validation_activity is None:
