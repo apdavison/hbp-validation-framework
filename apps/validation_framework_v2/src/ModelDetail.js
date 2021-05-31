@@ -27,7 +27,7 @@ import ModelDetailContent from "./ModelDetailContent";
 import ModelDetailMetadata from "./ModelDetailMetadata";
 import ModelResultOverview from "./ModelResultOverview";
 import ResultGraphs from "./ResultGraphs";
-import SimulationOverview from './SimulationOverview';
+import SimulationOverview from "./SimulationOverview";
 
 // if working on the appearance/layout set globals.DevMode=true
 // to avoid loading the models and tests over the network every time;
@@ -348,25 +348,27 @@ class ModelDetail extends React.Component {
     }
 
     getSimulations() {
-        return datastore.getSimulations(this.props.modelData.id)
+        return datastore
+            .getSimulations(this.props.modelData.id)
             .then((simulations) => {
+                console.log(simulations);
                 this.setState({
                     simulations: simulations,
                     loadingSimulations: false,
-                    error: null
+                    error: null,
                 });
             })
             .catch((err) => {
                 if (axios.isCancel(err)) {
-                    console.log('Error: ', err.message);
+                    console.log("Error: ", err.message);
                 } else {
                     // Something went wrong. Save the error in state and re-render.
                     this.setState({
                         loadingSimulations: false,
-                        error: err
+                        error: err,
                     });
                 }
-            })
+            });
     }
 
     checkEditAccess() {
@@ -437,9 +439,27 @@ class ModelDetail extends React.Component {
                                     }}
                                 >
                                     <Tab label="Info" />
-                                    <Tab label="Simulations" disabled={this.state.simulations === null || this.state.simulations.length < 1} />
-                                    <Tab label="Validations" disabled={this.state.results === null || this.state.results.length < 1} />
-                                    <Tab label="Validation figures" disabled={this.state.results === null || this.state.results.length < 1} />
+                                    <Tab
+                                        label="Simulations"
+                                        disabled={
+                                            this.state.simulations === null ||
+                                            this.state.simulations.length < 1
+                                        }
+                                    />
+                                    <Tab
+                                        label="Validations"
+                                        disabled={
+                                            this.state.results === null ||
+                                            this.state.results.length < 1
+                                        }
+                                    />
+                                    <Tab
+                                        label="Validation figures"
+                                        disabled={
+                                            this.state.results === null ||
+                                            this.state.results.length < 1
+                                        }
+                                    />
                                 </Tabs>
                             </AppBar>
                             <TabPanel value={this.state.tabValue} index={0}>
@@ -501,7 +521,9 @@ class ModelDetail extends React.Component {
                                 <SimulationOverview
                                     id={this.props.modelData.id}
                                     simulations={this.state.simulations}
-                                    loadingSimulations={this.state.loadingSimulations}
+                                    loadingSimulations={
+                                        this.state.loadingSimulations
+                                    }
                                 />
                             </TabPanel>
                             <TabPanel value={this.state.tabValue} index={2}>

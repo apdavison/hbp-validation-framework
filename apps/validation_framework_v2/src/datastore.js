@@ -462,26 +462,31 @@ class DataStore {
         }
     }
 
-    async getSimulations(modelId, source=null) {
+    async getSimulations(modelId, source = null) {
         if (this.models[modelId].loadedSimulations) {
             return this.models[modelId].simulations.map((simulationId) => {
                 return this.simulations[simulationId];
             });
         } else {
-            const url = this.baseUrl + "/simulations/?model_id=" + modelId + "&size=" + querySizeLimit;
-            return this.get(url, source)
-                .then(res => {
-                    const simulationIds = [];
-                    res.data.forEach((simulation) => {
-                        simulationIds.push(simulation.id);
-                        this.simulations[simulation.id] = simulation;
-                    });
-                    this.models[modelId].simulations = simulationIds;
-                    this.models[modelId].loadedSimulations = true;
-                    return res.data;
+            const url =
+                this.baseUrl +
+                "/simulations/?model_id=" +
+                modelId +
+                "&size=" +
+                querySizeLimit;
+            return this.get(url, source).then((res) => {
+                console.log("Retrieved simulation results");
+                const simulationIds = [];
+                res.data.forEach((simulation) => {
+                    simulationIds.push(simulation.id);
+                    this.simulations[simulation.id] = simulation;
                 });
+                this.models[modelId].simulations = simulationIds;
+                this.models[modelId].loadedSimulations = true;
+                return res.data;
+            });
         }
-    };
+    }
 
     async getValidFilterValues(source = null) {
         if (this.vocab === null) {
