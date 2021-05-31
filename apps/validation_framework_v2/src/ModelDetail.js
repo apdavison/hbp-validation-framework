@@ -27,6 +27,7 @@ import ModelDetailContent from "./ModelDetailContent";
 import ModelDetailMetadata from "./ModelDetailMetadata";
 import ModelResultOverview from "./ModelResultOverview";
 import ResultGraphs from "./ResultGraphs";
+import SimulationOverview from './SimulationOverview';
 
 // if working on the appearance/layout set globals.DevMode=true
 // to avoid loading the models and tests over the network every time;
@@ -101,8 +102,10 @@ class ModelDetail extends React.Component {
         this.state = {
             tabValue: 0,
             results: null,
+            simulations: null,
             loadingResult: true,
             loadingExtended: true,
+            loadingSimulations: true,
             error: null,
             auth: authContext,
             canEdit: false,
@@ -124,12 +127,14 @@ class ModelDetail extends React.Component {
         this.handleTabChange = this.handleTabChange.bind(this);
         this.checkEditAccess = this.checkEditAccess.bind(this);
         this.getExtendedData = this.getExtendedData.bind(this);
+        this.getSimulations = this.getSimulations.bind(this);
     }
 
     componentDidMount() {
         if (!DevMode) {
             this.getExtendedData();
             this.getModelResults();
+            this.getSimulations();
             this.checkEditAccess();
         }
     }
@@ -342,6 +347,28 @@ class ModelDetail extends React.Component {
             });
     }
 
+    getSimulations() {
+        return datastore.getSimulations(this.props.modelData.id)
+            .then((simulations) => {
+                this.setState({
+                    simulations: simulations,
+                    loadingSimulations: false,
+                    error: null
+                });
+            })
+            .catch((err) => {
+                if (axios.isCancel(err)) {
+                    console.log('Error: ', err.message);
+                } else {
+                    // Something went wrong. Save the error in state and re-render.
+                    this.setState({
+                        loadingSimulations: false,
+                        error: err
+                    });
+                }
+            })
+    }
+
     checkEditAccess() {
         let model = this.props.modelData;
         console.log("Checking edit access");
@@ -410,9 +437,9 @@ class ModelDetail extends React.Component {
                                     }}
                                 >
                                     <Tab label="Info" />
-                                    <Tab label="Results" disabled={this.state.results === null || this.state.results.length < 1} />
-                                    <Tab label="Figures" disabled={this.state.results === null || this.state.results.length < 1} />
-
+                                    <Tab label="Simulations" disabled={this.state.simulations === null || this.state.simulations.length < 1} />
+                                    <Tab label="Validations" disabled={this.state.results === null || this.state.results.length < 1} />
+                                    <Tab label="Validation figures" disabled={this.state.results === null || this.state.results.length < 1} />
                                 </Tabs>
                             </AppBar>
                             <TabPanel value={this.state.tabValue} index={0}>
@@ -471,6 +498,13 @@ class ModelDetail extends React.Component {
                                 </Grid>
                             </TabPanel>
                             <TabPanel value={this.state.tabValue} index={1}>
+                                <SimulationOverview
+                                    id={this.props.modelData.id}
+                                    simulations={this.state.simulations}
+                                    loadingSimulations={this.state.loadingSimulations}
+                                />
+                            </TabPanel>
+                            <TabPanel value={this.state.tabValue} index={2}>
                                 <ModelResultOverview
                                     id={this.props.modelData.id}
                                     modelJSON={this.props.modelData}
@@ -478,7 +512,7 @@ class ModelDetail extends React.Component {
                                     loadingResult={this.state.loadingResult}
                                 />
                             </TabPanel>
-                            <TabPanel value={this.state.tabValue} index={2}>
+                            <TabPanel value={this.state.tabValue} index={3}>
                                 <ResultGraphs
                                     id={this.props.modelData.id}
                                     results={this.state.results}
