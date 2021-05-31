@@ -410,8 +410,9 @@ class ModelDetail extends React.Component {
                                     }}
                                 >
                                     <Tab label="Info" />
-                                    <Tab label="Results" />
-                                    <Tab label="Figures" />
+                                    <Tab label="Results" disabled={this.state.results === null || this.state.results.length < 1} />
+                                    <Tab label="Figures" disabled={this.state.results === null || this.state.results.length < 1} />
+
                                 </Tabs>
                             </AppBar>
                             <TabPanel value={this.state.tabValue} index={0}>
