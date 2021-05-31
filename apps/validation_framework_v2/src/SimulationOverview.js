@@ -9,7 +9,7 @@ function SimulationOverview(props) {
         <div>
             {
                 props.simulations.map((sim, index) => {
-                    return <SimulationDetail sim={sim} />
+                    return <SimulationDetail sim={sim} key={index} />
                 })
             }
         </div>

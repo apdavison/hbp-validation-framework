@@ -41,7 +41,7 @@ function FileViewer(props) {
                 {
                     files.map((fileObj, index) => {
                         return (
-                            <ListItem className={classes.item}>
+                            <ListItem className={classes.item} key={index} >
                                 <ListItemIcon>
                                     <DescriptionIcon fontSize="large"/>
                                 </ListItemIcon>

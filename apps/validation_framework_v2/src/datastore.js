@@ -18,6 +18,7 @@ class DataStore {
         this.models = {};
         this.tests = {};
         this.results = {};
+        this.simulations = {};
         this.projects = [];
         this.vocab = null;
         this.queries = {

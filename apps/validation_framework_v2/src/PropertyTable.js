@@ -32,6 +32,7 @@ function PropertyTable(props) {
         <div className={classes.root}>
             <Typography variant="overline">{title}</Typography>
             <table>
+                <tbody>
                 {
                     rows.map((row, index) => {
                         return (
@@ -41,6 +42,7 @@ function PropertyTable(props) {
                         )
                     })
                 }
+                </tbody>
             </table>
         </div>
     )
