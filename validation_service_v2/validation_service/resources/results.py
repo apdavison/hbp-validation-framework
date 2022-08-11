@@ -1,25 +1,20 @@
 from uuid import UUID
-from enum import Enum
 from typing import List
-from datetime import datetime
 from urllib.parse import quote_plus, urlencode
-import os
 import logging
 import itertools
 from requests.exceptions import HTTPError
 
-from fairgraph.client import KGClient, SCOPE_MAP
-from fairgraph.base import KGQuery, KGProxy, as_list
+from fairgraph.client import SCOPE_MAP
+from fairgraph.base import KGQuery, as_list
 from fairgraph.brainsimulation import ValidationResult as ValidationResultKG, ValidationActivity
 
 from fastapi import APIRouter, Depends, Header, Query, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import ValidationError
 
 from ..auth import get_kg_client, User
 from ..data_models import ScoreType, ValidationResult, ValidationResultWithTestAndModel, ValidationResultSummary, ConsistencyError
 from ..queries import build_result_filters
-from .. import settings
 
 
 logger = logging.getLogger("validation_service_v2")

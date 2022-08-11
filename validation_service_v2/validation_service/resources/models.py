@@ -29,13 +29,23 @@ from ..queries import build_model_project_filters, model_alias_exists
 
 logger = logging.getLogger("validation_service_v2")
 
-auth = HTTPBearer()
+auth = HTTPBearer(auto_error=False)
 router = APIRouter()
 
 
 @router.get("/")
-def read_root():
-    return {"Hello": "World"}
+async def about_this_api(token: HTTPAuthorizationCredentials = Depends(auth)):
+    info = {
+        "about": "This is the EBRAINS Model Validation API",
+        "version": "2.0",
+        "links": {
+            "documentation": "/docs"
+        },
+    }
+    if token:
+        user_info = await User(token).get_user_info()
+        info["user"] = user_info["preferred_username"]
+    return info
 
 
 @router.get("/models/", response_model=List[ScientificModel])
@@ -74,27 +84,28 @@ async def query_models(
     and/or search by attributes of the models (e.g. the cell types being modelled, the type of model, the model author).
     """
 
-    # If project_id is provided:
-    #     - private = None: both public and private models from that project (collab), if the user is a member
-    #     - private = True: only private models from that project, if that user is a member
-    #     - private = False: only public models from that project
-    # If project_id is not provided:
-    #     - private = None: only public models, from all projects
-    #     - private = True: 400? error "To see private models, you must specify the project/collab"
-    #     - private = False: only public models, from all projects
-    user = User(token)
+    # If project_id is provided, we only return models from that project (collab)
+    # If private is:
+    #   - None: both public and private models
+    #   - True: only private models
+    #   - False: only public models
+    # In all cases, for private models the user must be a member
+    # of the collab the model is associated with
+
+    user = User(token, allow_anonymous=True)
     if private:
-        if project_id:
-            for collab_id in project_id:
-                if not await user.can_view_collab(collab_id):
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="You are not a member of project #{collab_id}",
-                    )
+        if user.token:
+            if project_id:
+                for collab_id in project_id:
+                    if not await user.can_view_collab(collab_id):
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You are not a member of project #{collab_id}",
+                        )
         else:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="To see private models, you must specify the project/collab id",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="You need to provide a bearer token to view private models",
             )
 
     # get the values of of the Enums
@@ -109,15 +120,33 @@ async def query_models(
     if abstraction_level:
         abstraction_level = abstraction_level.value
 
-    # transform UUIDs into URIs
     if id:
+        # if specifying specific ids, we ignore any other search terms
         model_projects = []
         for uuid in id:
             model_project = ModelProject.from_uuid(str(uuid), kg_client, api="nexus", scope="latest")
             if model_project:
-                model_projects.append(model_project)
+                if not model_project.private:
+                    model_projects.append(model_project)
+                elif token:
+                    if await user.can_view_collab(model_project.collab_id):
+                        model_projects.append(model_project)
+                    else:
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail=f"You must be a member of collab {model_project.collab_id} to view model {uuid}",
+                        )
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail=f"You need to provide a bearer token to view model {uuid}",
+                    )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"No such model: {uuid}",
+                )
     else:
-        # if specifying specific ids, we ignore any other search terms
         filter_query, context = build_model_project_filters(
             alias,
             name,
@@ -142,6 +171,19 @@ async def query_models(
             model_projects = ModelProject.list(
                 kg_client, api="nexus", size=size, from_index=from_index, scope="latest"
             )
+        if not (private is False or (private and project_id)):
+            # If private=True and project_id is set we have already checked that the
+            # user has access to the collabs specified in project_id
+            # In all other scenarios we need to filter out models the user doesn't have access to.
+
+            # todo: the following could be slow.
+            # We need to optimise the auth module to avoid making unecessary network requests
+            accessible_models = []
+            for model_project in model_projects:
+                if not model_project.private or await user.can_view_collab(model_project.collab_id):
+                    accessible_models.append(model_project)
+            model_projects = accessible_models
+
     if summary:
         cls = ScientificModelSummary
     else:

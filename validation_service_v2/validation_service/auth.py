@@ -56,7 +56,12 @@ async def get_collab_info(collab_id, token):
 
 class User:
 
-    def __init__(self, token):
+    def __init__(self, token, allow_anonymous=False):
+        if token is None and not allow_anonymous:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="You need to provide a bearer token to access this resource"
+            )
         self.token = token
         self._user_info = None
         self._collab_info = {}
