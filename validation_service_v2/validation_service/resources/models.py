@@ -200,7 +200,7 @@ async def get_model(
     token: HTTPAuthorizationCredentials = Depends(auth),
 ):
     """Retrieve information about a specific model identified by a UUID"""
-    user = User(token)
+    user = User(token, allow_anonymous=True)
     model_project = await _get_model_by_id_or_alias(model_id, user)
     if not model_project:
         raise HTTPException(
@@ -319,7 +319,7 @@ async def delete_model(model_id: UUID, token: HTTPAuthorizationCredentials = Dep
 async def get_model_instances(
     model_id: str, version: str = None, token: HTTPAuthorizationCredentials = Depends(auth)
 ):
-    user = User(token)
+    user = User(token, allow_anonymous=True)
     model_project = await _get_model_by_id_or_alias(model_id, user)
     model_instances = [
         ModelInstance.from_kg_object(inst, kg_client, model_project.uuid)
@@ -334,7 +334,7 @@ async def get_model_instances(
 async def get_model_instance_from_instance_id(
     model_instance_id: UUID, token: HTTPAuthorizationCredentials = Depends(auth)
 ):
-    user = User(token)
+    user = User(token, allow_anonymous=True)
     inst, model_id = await _get_model_instance_by_id(model_instance_id, user)
     return ModelInstance.from_kg_object(inst, kg_client, model_id)
 
@@ -343,7 +343,7 @@ async def get_model_instance_from_instance_id(
 async def get_latest_model_instance_given_model_id(
     model_id: str, token: HTTPAuthorizationCredentials = Depends(auth)
 ):
-    user = User(token)
+    user = User(token, allow_anonymous=True)
     model_project = await _get_model_by_id_or_alias(model_id, user)
     model_instances = [
         ModelInstance.from_kg_object(inst, kg_client, model_project.uuid)
@@ -357,7 +357,7 @@ async def get_latest_model_instance_given_model_id(
 async def get_model_instance_given_model_id(
     model_id: str, model_instance_id: UUID, token: HTTPAuthorizationCredentials = Depends(auth)
 ):
-    user = User(token)
+    user = User(token, allow_anonymous=True)
     model_project = await _get_model_by_id_or_alias(model_id, user)
     for inst in as_list(model_project.instances):
         if UUID(inst.uuid) == model_instance_id:
