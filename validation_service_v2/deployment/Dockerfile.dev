@@ -21,7 +21,7 @@ RUN unset DEBIAN_FRONTEND
 
 RUN pip3 install --upgrade pip
 
-RUN git clone https://github.com/HumanBrainProject/pyxus.git pyxus_src
+RUN git clone https://github.com/apdavison/pyxus.git --branch=pandoc-update --single-branch pyxus_src
 RUN pip3 install -r pyxus_src/pyxus/requirements.txt; pip install pyxus_src/pyxus
 ADD https://api.github.com/repos/HumanBrainProject/fairgraph/git/refs/heads/master fairgraph_version.json
 RUN git clone https://github.com/HumanBrainProject/fairgraph.git --branch=stable --single-branch
@@ -39,7 +39,7 @@ ENV PYTHONPATH  /home/docker:/home/docker/site:/usr/lib/python2.7/dist-packages/
 
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 RUN rm /etc/nginx/sites-enabled/default
-COPY deployment/nginx-app.conf /etc/nginx/sites-enabled/
+COPY deployment/nginx-app-dev.conf /etc/nginx/sites-enabled/nginx-app.conf
 COPY deployment/supervisor-app.conf /etc/supervisor/conf.d/
 #RUN ln -sf /dev/stdout /var/log/nginx/access.log
 #RUN ln -sf /dev/stderr /var/log/nginx/error.log

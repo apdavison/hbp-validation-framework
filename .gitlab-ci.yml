@@ -1,10 +1,13 @@
 stages:
-  - test
   - build
+  - test
 
 run_cypress_tests:
   image: cypress/browsers:node12.14.1-chrome85-ff81
   stage: test
+  rules:
+    - changes:
+      - apps/validation_framework_v2/**/*
   script:
     - cd apps/validation_framework_v2
     # install dependencies
@@ -14,14 +17,56 @@ run_cypress_tests:
   tags:
     - docker-runner
 
-build_image:
+build_apps_dev_image:
   stage: build
-  only:
-    refs:
-      - development
+  rules:
+      - if: '$CI_COMMIT_REF_NAME == "development"'
+        changes:
+          - apps/**/*
   script:
     - docker build -f apps/deployment/Dockerfile.dev -t docker-registry.ebrains.eu/model-catalog/model-catalog-v2:dev ./apps
     - docker login -u $DOCKER_REGISTRY_USER -p $DOCKER_REGISTRY_SECRET docker-registry.ebrains.eu
     - docker push docker-registry.ebrains.eu/model-catalog/model-catalog-v2:dev
+  tags:
+    - shell-runner
+
+build_apps_prod_image:
+  stage: build
+  rules:
+      - if: '$CI_COMMIT_REF_NAME == "master"'
+        changes:
+          - apps/**/*
+  script:
+    - docker build -f apps/deployment/Dockerfile.prod -t docker-registry.ebrains.eu/model-catalog/model-catalog-v2:prod ./apps
+    - docker login -u $DOCKER_REGISTRY_USER -p $DOCKER_REGISTRY_SECRET docker-registry.ebrains.eu
+    - docker push docker-registry.ebrains.eu/model-catalog/model-catalog-v2:prod
+  tags:
+    - shell-runner
+
+
+build_api_dev_image:
+  stage: build
+  rules:
+      - if: '$CI_COMMIT_REF_NAME == "development"'
+        changes:
+          - validation_service_v2/**/*
+  script:
+    - docker build -f validation_service_v2/deployment/Dockerfile.dev -t docker-registry.ebrains.eu/model-catalog/validation_service-v2:dev ./validation_service_v2
+    - docker login -u $DOCKER_REGISTRY_USER -p $DOCKER_REGISTRY_SECRET docker-registry.ebrains.eu
+    - docker push docker-registry.ebrains.eu/model-catalog/validation_service-v2:dev
+  tags:
+    - shell-runner
+
+
+build_api_prod_image:
+  stage: build
+  rules:
+      - if: '$CI_COMMIT_REF_NAME == "master"'
+        changes:
+          - validation_service_v2/**/*
+  script:
+    - docker build -f validation_service_v2/deployment/Dockerfile.prod -t docker-registry.ebrains.eu/model-catalog/validation_service-v2:prod ./validation_service_v2
+    - docker login -u $DOCKER_REGISTRY_USER -p $DOCKER_REGISTRY_SECRET docker-registry.ebrains.eu
+    - docker push docker-registry.ebrains.eu/model-catalog/validation_service-v2:prod
   tags:
     - shell-runner
