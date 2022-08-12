@@ -1098,8 +1098,7 @@ class ValidationResultWithTestAndModel(ValidationResult):
     test: ValidationTest
 
     @classmethod
-    async def from_kg_object(cls, result, client, token):
-        user = User(token)
+    async def from_kg_object(cls, result, client, user):
         vr = ValidationResult.from_kg_object(result, client)
 
         model_instance_kg, model_id = await _get_model_instance_by_id(vr.model_instance_id, user)
@@ -1111,7 +1110,7 @@ class ValidationResultWithTestAndModel(ValidationResult):
         test_script = _get_test_instance_by_id(vr.test_instance_id, user)
         test_definition = _get_test_by_id_or_alias(test_script.test_definition.uuid, user)
 
-        test_instance = ValidationTestInstance.from_kg_object(test_script, token)
+        test_instance = ValidationTestInstance.from_kg_object(test_script, user.token)
         test = ValidationTest.from_kg_object(test_definition, client)
 
         return cls(

@@ -27,7 +27,7 @@ async def _check_model_access(model_project, user):
             )
 
 
-async def _check_test_access(test_definition, user):
+def _check_test_access(test_definition, user):
     if user.token is None and test_definition.status != "published":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -19,7 +19,7 @@ from ..queries import build_result_filters
 
 logger = logging.getLogger("validation_service_v2")
 
-auth = HTTPBearer()
+auth = HTTPBearer(auto_error=False)
 kg_client = get_kg_client()
 router = APIRouter()
 
@@ -36,18 +36,25 @@ def query_results(
     test_id: List[UUID] = Query(None),
     model_alias: List[str] = Query(None),
     test_alias: List[str] = Query(None),
-    score_type: List[ScoreType] = None,
+    score_type: List[ScoreType] = Query(None),
     size: int = Query(100),
     from_index: int = Query(0),
     # from header
     token: HTTPAuthorizationCredentials = Depends(auth),
 ):
+    user = User(token, allow_anonymous=True)
     return _query_results(passed, project_id, model_instance_id, test_instance_id, model_id, test_id, model_alias, test_alias, score_type,  size,
-from_index, token)
+from_index, user)
 
 
 def _query_results(passed, project_id, model_instance_id, test_instance_id, model_id, test_id, model_alias, test_alias, score_type,  size,
-from_index, token):
+from_index, user):
+    published_test = None
+    public_model = None
+    # to do: check user access to project_id, model_id and test_id, if set
+    if user.token is None:
+        published_test = True
+        public_model = True
     filter_query, context = build_result_filters(
         model_instance_id,
         test_instance_id,
@@ -58,6 +65,8 @@ from_index, token):
         score_type,
         passed,
         project_id,
+        published_test,
+        public_model,
         kg_client,
     )
     if len(filter_query["value"]) > 0:
@@ -132,6 +141,15 @@ from_index, token):
 
 @router.get("/results/{result_id}", response_model=ValidationResult)
 def get_result(result_id: UUID, token: HTTPAuthorizationCredentials = Depends(auth)):
+    user = User(token, allow_anonymous=False)
+    # todo: for anonymous users, we'd like to check the model is public
+    # and the test is published, else raise HTTPException
+    # However this takes additional KG queries, which we're trying to avoid
+    # for this endpoint, so we require authentication
+    # The /results-summary/{id} endpoint is available without authentication
+    # since it doesn't contain information about results files, and
+    # the /results-extended/{id} endpoint is also available since
+    # we can do the additional KG queries there
     result = ValidationResultKG.from_uuid(str(result_id), kg_client, api="nexus", scope="latest")
     if result:
         try:
@@ -150,20 +168,26 @@ def get_result(result_id: UUID, token: HTTPAuthorizationCredentials = Depends(au
 async def query_results_extended(
     passed: List[bool] = Query(None),
     project_id: List[int] = Query(None),
-    model_instance_id: List[UUID] = Query(
-        None
-    ),  # todo: rename this 'model_instance_id' for consistency
+    model_instance_id: List[UUID] = Query(None),
     test_instance_id: List[UUID] = Query(None),
     model_id: List[UUID] = Query(None),
     test_id: List[UUID] = Query(None),
     model_alias: List[str] = Query(None),
     test_alias: List[str] = Query(None),
-    score_type: List[ScoreType] = None,
+    score_type: List[ScoreType] = Query(None),
     size: int = Query(100),
     from_index: int = Query(0),
     # from header
     token: HTTPAuthorizationCredentials = Depends(auth),
 ):
+    user = User(token, allow_anonymous=True)
+    published_test = None
+    public_model = None
+    # to do: check user access to project_id, model_id and test_id, if set
+    if user.token is None:
+        published_test = True
+        public_model = True
+
     filter_query, context = build_result_filters(
         model_instance_id,
         test_instance_id,
@@ -174,6 +198,8 @@ async def query_results_extended(
         score_type,
         passed,
         project_id,
+        published_test,
+        public_model,
         kg_client,
     )
     if len(filter_query["value"]) > 0:
@@ -186,7 +212,7 @@ async def query_results_extended(
     response = []
     for result in results:
         try:
-            obj = await ValidationResultWithTestAndModel.from_kg_object(result, kg_client, token)
+            obj = await ValidationResultWithTestAndModel.from_kg_object(result, kg_client, user)
         except ConsistencyError as err:  # todo: count these and report them in the response
             logger.warning(str(err))
         else:
@@ -197,10 +223,11 @@ async def query_results_extended(
 @router.get("/results-extended/{result_id}", response_model=ValidationResultWithTestAndModel)
 async def get_result_extended(result_id: UUID,
                      token: HTTPAuthorizationCredentials = Depends(auth)):
+    user = User(token, allow_anonymous=True)
     result = ValidationResultKG.from_uuid(str(result_id), kg_client, api="nexus", scope="latest")
     if result:
         try:
-            obj = await ValidationResultWithTestAndModel.from_kg_object(result, kg_client, token)
+            obj = await ValidationResultWithTestAndModel.from_kg_object(result, kg_client, user)
         except ConsistencyError as err:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(err))
     else:
@@ -208,29 +235,34 @@ async def get_result_extended(result_id: UUID,
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Validation result {result_id} not found.",
         )
+    if user.token is None:
+        if obj.model.private or obj.test.implementation_status != "published":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Authentication is required to view validation result {result_id}.",
+            )
     return obj
-
 
 
 @router.get("/results-summary/", response_model=List[ValidationResultSummary])
 async def query_results_summary(
     passed: List[bool] = Query(None),
     project_id: List[int] = Query(None),
-    model_instance_id: List[UUID] = Query(
-        None
-    ),  # todo: rename this 'model_instance_id' for consistency
+    model_instance_id: List[UUID] = Query(None),
     test_instance_id: List[UUID] = Query(None),
     model_id: List[UUID] = Query(None),
     test_id: List[UUID] = Query(None),
     model_alias: List[str] = Query(None),
     test_alias: List[str] = Query(None),
-    score_type: List[ScoreType] = None,
+    score_type: List[ScoreType] = Query(None),
     size: int = Query(100),
     from_index: int = Query(0),
     # from header
     token: HTTPAuthorizationCredentials = Depends(auth),
 ):
-
+    user = User(token, allow_anonymous=True)
+    # we allow fully anonymous access since the data model
+    # doesn't expose any potentially private information
     path = "/modelvalidation/simulation/validationresult/v0.1.0"
     query_id = "vf-summary"
     scope = SCOPE_MAP["latest"]
@@ -277,6 +309,7 @@ async def query_results_summary(
 
 @router.post("/results/", response_model=ValidationResult, status_code=status.HTTP_201_CREATED)
 def create_result(result: ValidationResult, token: HTTPAuthorizationCredentials = Depends(auth)):
+    user = User(token, allow_anonymous=False)
     logger.info("Beginning post result")
     kg_objects = result.to_kg_objects(kg_client)
     logger.info("Created objects")
@@ -295,7 +328,7 @@ def create_result(result: ValidationResult, token: HTTPAuthorizationCredentials 
 @router.delete("/results/{result_id}", status_code=status.HTTP_200_OK)
 async def delete_result(result_id: UUID, token: HTTPAuthorizationCredentials = Depends(auth)):
     # todo: handle non-existent UUID
-    user = User(token)
+    user = User(token, allow_anonymous=False)
     result = ValidationResultKG.from_uuid(str(result_id), kg_client, api="nexus", scope="latest")
     if not await user.is_admin():
         raise HTTPException(

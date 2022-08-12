@@ -101,6 +101,8 @@ def build_result_filters(
     score_type,
     passed,
     project_id,
+    published_test,
+    public_model,
     kg_client,
 ):
     context = {
@@ -128,6 +130,16 @@ def build_result_filters(
             chain(get_full_uri(ValidationTestDefinition, uuid, kg_client) for uuid in test_id)
         )
 
+    if published_test:
+        filter_query["value"].append({
+            "path": "prov:wasGeneratedBy / prov:used / nsg:implements / nsg:status",
+            "op": "eq",
+            "value": "published"})
+    if public_model:
+        filter_query["value"].append({
+            "path": "prov:wasGeneratedBy / prov:used / ^dcterms:hasPart / nsg:private",
+            "op": "eq",
+            "value": False})
     for value, path in (
         (model_instance_id, "prov:wasGeneratedBy / prov:used"),
         (test_instance_id, "prov:wasGeneratedBy / prov:used"),
