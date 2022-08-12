@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from ..auth import User
 from ..db import kg_client, _get_test_by_id_or_alias, _get_test_instance_by_id
 from ..data_models import (
+    ImplementationStatus,
     Person,
     Species,
     BrainRegion,
@@ -32,7 +33,7 @@ from .. import settings
 
 logger = logging.getLogger("validation_service_v2")
 
-auth = HTTPBearer()
+auth = HTTPBearer(auto_error=False)
 router = APIRouter()
 
 
@@ -56,6 +57,16 @@ def query_tests(
     # from header
     token: HTTPAuthorizationCredentials = Depends(auth),
 ):
+    user = User(token, allow_anonymous=True)
+    if user.token is None:
+        if implementation_status:
+            if implementation_status != ImplementationStatus.published.value:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=f"To view unpublished tests you need to authenticate.",
+                )
+        else:
+            implementation_status = ImplementationStatus.published.value
 
     # get the values of of the Enums
     if brain_region:
@@ -109,7 +120,7 @@ def query_tests(
 
 @router.get("/tests/{test_id}", response_model=ValidationTest)
 def get_test(test_id: str, token: HTTPAuthorizationCredentials = Depends(auth)):
-    user = User()
+    user = User(token, allow_anonymous=True)
     test_definition = _get_test_by_id_or_alias(test_id, user)
     return ValidationTest.from_kg_object(test_definition, kg_client)
 
@@ -201,7 +212,7 @@ async def delete_test(test_id: UUID, token: HTTPAuthorizationCredentials = Depen
 def get_test_instances(
     test_id: str, version: str = Query(None), token: HTTPAuthorizationCredentials = Depends(auth)
 ):
-    user = User()
+    user = User(token, allow_anonymous=True)
     test_definition = _get_test_by_id_or_alias(test_id, user)
     test_instances = [
         ValidationTestInstance.from_kg_object(inst, kg_client)
@@ -216,7 +227,7 @@ def get_test_instances(
 def get_test_instance_from_instance_id(
     test_instance_id: UUID, token: HTTPAuthorizationCredentials = Depends(auth)
 ):
-    user = User()
+    user = User(token, allow_anonymous=True)
     inst = _get_test_instance_by_id(test_instance_id, user)
     return ValidationTestInstance.from_kg_object(inst, kg_client)
 
@@ -225,7 +236,7 @@ def get_test_instance_from_instance_id(
 def get_latest_test_instance_given_test_id(
     test_id: str, token: HTTPAuthorizationCredentials = Depends(auth)
 ):
-    user = User()
+    user = User(token, allow_anonymous=True)
     test_definition = _get_test_by_id_or_alias(test_id, user)
     test_instances = [
         ValidationTestInstance.from_kg_object(inst, kg_client)
@@ -244,7 +255,7 @@ def get_latest_test_instance_given_test_id(
 def get_test_instance_given_test_id(
     test_id: str, test_instance_id: UUID, token: HTTPAuthorizationCredentials = Depends(auth)
 ):
-    user = User()
+    user = User(token, allow_anonymous=True)
     test_definition = _get_test_by_id_or_alias(test_id, user)
     for inst in as_list(test_definition.scripts.resolve(kg_client, api="nexus", scope="latest")):
         if UUID(inst.uuid) == test_instance_id:
@@ -259,7 +270,7 @@ def get_test_instance_given_test_id(
 def get_test_instance_from_instance_id(
     test_instance_id: UUID, token: HTTPAuthorizationCredentials = Depends(auth)
 ):
-    user = User(token)
+    user = User(token, allow_anonymous=True)
     test_instance_kg = _get_test_instance_by_id(test_instance_id, user)
     return ValidationTestInstance.from_kg_object(test_instance_kg, kg_client)
 
@@ -274,7 +285,7 @@ def create_test_instance(
     test_instance: ValidationTestInstance,
     token: HTTPAuthorizationCredentials = Depends(auth),
 ):
-    user = User()
+    user = User(token)
     test_definition = _get_test_by_id_or_alias(test_id, user)
     kg_object = test_instance.to_kg_objects(test_definition)[0]
     _check_test_script_uniqueness(test_definition, kg_object, kg_client)
@@ -309,7 +320,7 @@ def update_test_instance(
     test_instance_patch: ValidationTestInstancePatch,
     token: HTTPAuthorizationCredentials = Depends(auth),
 ):
-    user = User()
+    user = User(token)
     validation_script = _get_test_instance_by_id(test_instance_id, user)
     test_definition_kg = _get_test_by_id_or_alias(test_id, user)
     return _update_test_instance(validation_script, test_definition_kg, test_instance_patch, user)

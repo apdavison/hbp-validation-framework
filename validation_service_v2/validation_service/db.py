@@ -27,6 +27,14 @@ async def _check_model_access(model_project, user):
             )
 
 
+async def _check_test_access(test_definition, user):
+    if user.token is None and test_definition.status != "published":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Viewing unpublished tests requires authentication.",
+        )
+
+
 async def _get_model_by_id_or_alias(model_id, user):
     try:
         model_id = UUID(model_id)
@@ -88,6 +96,7 @@ def _get_test_by_id_or_alias(test_id, user):
         raise Exception(
             f"Found multiple tests (n={len(test_definition)}) with id/alias '{test_id}'"
         )
+    _check_test_access(test_definition, user)
     # todo: fairgraph should accept UUID object as well as str
     return test_definition
 
@@ -104,6 +113,7 @@ def _get_test_instance_by_id(instance_id, user):
     # todo: in case of a dangling test instance, where the parent test_definition
     #       has been deleted but the instance wasn't, we could get a None here
     #       which we need to deal with
+    _check_test_access(test_definition, user)
     return test_instance
 
 
