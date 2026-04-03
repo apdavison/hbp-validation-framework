@@ -111,7 +111,10 @@ def get_term_cache():
             omterms.Service,
             omterms.ActionStatusType
         ):
-            objects = cls.list(kg_service_client, api="core", release_status="any", size=10000)
+            if hasattr(cls, "instances"):
+                objects = cls.instances()
+            else:
+                objects = cls.list(kg_service_client, api="core", release_status="any", size=10000)
             term_cache[cls.__name__] = {
                 "names": {obj.name: obj for obj in objects},
                 "ids": {obj.id: obj for obj in objects}
@@ -192,8 +195,8 @@ def get_identifier(iri, prefix):
 ContentType = Enum(
     "ContentType",
     [
-        (get_identifier(obj.uuid, "ct"), obj.name)
-        for obj in sorted(term_cache["ContentType"]["names"].values(), key=lambda obj: obj.name)
+        (name.replace(" ", "_"), name)
+        for name in sorted(term_cache["ContentType"]["names"])
     ]
 )
 
