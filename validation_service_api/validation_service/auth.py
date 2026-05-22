@@ -88,6 +88,7 @@ class User:
         self.token = token
         self._identity = None
         self._teams = None
+        self._groups = None
         self._collab_info = {}
         self._connection_error = False
         self.username = None
@@ -111,7 +112,14 @@ class User:
             self.username = username
         return self._identity
 
-    async def _has_role(self, role, collab_name, client):
+    def get_groups(self):
+        if self._groups is None:
+            payload = _decode_jwt_payload(self.token.credentials)
+            raw = payload.get("group") or payload.get("groups") or []
+            self._groups = set(raw) if isinstance(raw, list) else set()
+        return self._groups
+
+    async def _has_direct_role(self, role, collab_name, client):
         roles_url = f"{settings.EBRAINS_IDM_API_URL}/teams/{collab_name}/{role}/users"
         headers = {"Authorization": f"Bearer {self.token.credentials}"}
         res = await client.get(roles_url, headers=headers,
@@ -122,6 +130,32 @@ class User:
             if self.username == user["username"]:
                 return True
         return False
+
+    async def _has_role_via_group(self, role, collab_name, client):
+        user_groups = self.get_groups()
+        if not user_groups:
+            return False
+        url = f"{settings.EBRAINS_IDM_API_URL}/teams/{collab_name}/{role}/groups"
+        headers = {"Authorization": f"Bearer {self.token.credentials}"}
+        try:
+            res = await client.get(url, headers=headers,
+                                   timeout=settings.AUTHENTICATION_TIMEOUT)
+            if res.status_code == 404:
+                return False
+            res.raise_for_status()
+        except Exception as err:
+            logger.warning("Group role check failed for %s/%s: %s",
+                           collab_name, role, err)
+            return False
+        role_group_names = {g.get("name") for g in res.json() if isinstance(g, dict)}
+        return bool(user_groups & role_group_names)
+
+    async def _has_role(self, role, collab_name, client):
+        direct, via_group = await asyncio.gather(
+            self._has_direct_role(role, collab_name, client),
+            self._has_role_via_group(role, collab_name, client),
+        )
+        return direct or via_group
 
     async def get_teams(self):
         if self._teams is None:
@@ -144,7 +178,6 @@ class User:
                 )
             )
             for role in ("administrator", "editor"):
-                    # todo: get groups as well and check for group membership
                     async with AsyncClient() as client:
                         found = await asyncio.gather(*[self._has_role(role, collab_name, client) for collab_name in collab_names])
                         for include, collab_name in zip(found, collab_names.copy()):
