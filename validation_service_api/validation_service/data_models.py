@@ -96,6 +96,11 @@ def ensure_has_timezone(timestamp):
 
 
 def get_term_cache():
+    # Controlled-term instances are bundled locally with fairgraph/openMINDS
+    # (cls.instances()), so the cache is built without any call to the KG.
+    # We key only by name: names are used to build the API enums and to map an
+    # API value back to its (local) openMINDS instance when writing to the KG.
+    # The KG resolves the instances' semantic IRIs to its own UUID-based IRIs.
     if len(term_cache) == 0:
         for cls in (
             omterms.Species,  # todo: filter to give a smaller list
@@ -107,17 +112,10 @@ def get_term_cache():
             omterms.DifferenceMeasure,
             omcore.License,
             omcore.ContentType,  # todo: filter to include only types relevant to modelling
-            omcore.Organization,
-            omterms.Service,
             omterms.ActionStatusType
         ):
-            if hasattr(cls, "instances"):
-                objects = cls.instances()
-            else:
-                objects = cls.list(kg_service_client, api="core", release_status="any", size=10000)
             term_cache[cls.__name__] = {
-                "names": {obj.name: obj for obj in objects},
-                "ids": {obj.id: obj for obj in objects}
+                "names": {obj.name: obj for obj in cls.instances()}
             }
     return term_cache
 
@@ -131,12 +129,38 @@ def get_term(cls_name, attr):
         return None
 
 
-def get_term_name_from_id(cls_name, attr):
-    if attr:
-        term = term_cache[cls_name]["ids"].get(attr.id, None)
-        if term:
-            return term.name
-    return None
+# TEMPORARY: some controlled-term instances in the KG still carry names that have been
+# renamed or removed in the openMINDS library bundled with fairgraph (so they are absent
+# from the local enums). Until those KG instances are re-curated to the current openMINDS
+# terms, map the legacy names to their current equivalents on read. Remove an entry once
+# its KG instance has been re-curated; remove the whole block once none remain.
+LEGACY_TERM_NAMES = {
+    "CellType": {
+        "pyramidal cell": "pyramidal neuron",
+        "granule cell": "granule neuron",
+    },
+}
+
+# API field name -> term_cache key, for the study-target-derived enum fields.
+_FIELD_TERM_CLASS = {
+    "cell_type": "CellType",
+    "brain_region": "UBERONParcellation",
+    "species": "Species",
+}
+
+
+def normalize_term_name(cls_name, name):
+    """Map a legacy KG controlled-term name to its current openMINDS name (temporary)."""
+    if name is None:
+        return None
+    return LEGACY_TERM_NAMES.get(cls_name, {}).get(name, name)
+
+
+def _normalize_legacy_term_name(cls, v, field):
+    """Pydantic pre-validator: remap legacy controlled-term names before enum validation."""
+    if isinstance(v, str):
+        return normalize_term_name(_FIELD_TERM_CLASS[field.name], v)
+    return v
 
 
 Slug = constr(regex=r"^\w[\w\-]+$", to_lower=True, strip_whitespace=True)
@@ -185,11 +209,6 @@ CellType = Enum(
         for name in sorted(term_cache["CellType"]["names"])
     ]
 )
-
-
-def get_identifier(iri, prefix):
-    """Return a valid Python variable name based on a KG object UUID"""
-    return prefix + "_" + iri.split("/")[-1].replace("-", "")
 
 
 ContentType = Enum(
@@ -533,6 +552,10 @@ class ScientificModel(BaseModel):
     species: Species = None
     description: str
     date_created: date = None
+
+    _normalize_terms = validator(
+        "cell_type", "brain_region", "species", pre=True, allow_reuse=True
+    )(_normalize_legacy_term_name)
     format: List[str] = None
     images: List[Image] = None
     old_uuid: UUID = None
@@ -603,10 +626,8 @@ class ScientificModel(BaseModel):
                 organization=organizations[0] if organizations else None,
                 private=is_private(model_project.space),
                 cell_type=cell_types[0] if cell_types else None,
-                model_scope=term_cache["ModelScope"]["ids"][model_project.model_scope.id].name
-                            if model_project.model_scope else None,
-                abstraction_level=term_cache["ModelAbstractionLevel"]["ids"][model_project.abstraction_level.id].name
-                                  if model_project.abstraction_level else None,
+                model_scope=model_project.scope.name if model_project.scope else None,
+                abstraction_level=model_project.abstraction_level.name if model_project.abstraction_level else None,
                 brain_region=brain_regions[0] if brain_regions else None,
                 species=species[0] if species else None,
                 description=model_project.description,
@@ -689,6 +710,10 @@ class ScientificModelSummary(BaseModel):
     species: Species = None
     description: str
     date_created: datetime = None
+
+    _normalize_terms = validator(
+        "cell_type", "brain_region", "species", pre=True, allow_reuse=True
+    )(_normalize_legacy_term_name)
     format: List[str] = None
     validation_count: int = 0
 
@@ -725,8 +750,8 @@ class ScientificModelSummary(BaseModel):
                 organization=organization,
                 private=is_private(model_project.space),
                 cell_type=cell_types[0] if cell_types else None,
-                model_scope=get_term_name_from_id("ModelScope", model_project.model_scope),
-                abstraction_level=get_term_name_from_id("ModelAbstractionLevel", model_project.abstraction_level),
+                model_scope=model_project.scope.name if model_project.scope else None,
+                abstraction_level=model_project.abstraction_level.name if model_project.abstraction_level else None,
                 brain_region=brain_regions[0] if brain_regions else None,
                 species=species[0] if species else None,
                 description=model_project.description,
@@ -898,6 +923,10 @@ class ValidationTest(BaseModel):
     description: str  # was 'protocol', renamed for consistency with models
     date_created: datetime = None
     old_uuid: UUID = None
+
+    _normalize_terms = validator(
+        "cell_type", "brain_region", "species", pre=True, allow_reuse=True
+    )(_normalize_legacy_term_name)
     data_location: List[HttpUrl]
     data_type: str = None
     recording_modality: RecordingModality = None
@@ -1076,6 +1105,10 @@ class ValidationTestSummary(BaseModel):
     description: str  # was 'protocol', renamed for consistency with models
     date_created: datetime = None
     data_type: str = None
+
+    _normalize_terms = validator(
+        "cell_type", "brain_region", "species", pre=True, allow_reuse=True
+    )(_normalize_legacy_term_name)
     recording_modality: RecordingModality = None
     test_type: ModelScope = None
     score_type: ScoreType = None

@@ -13,6 +13,11 @@ from .auth import get_kg_client_for_service_account
 
 RETRY_INTERVAL = 60  # seconds
 
+# Controlled-term links to resolve in the same KG query (query route) when fetching a
+# model, so ScientificModel.from_kg_object can read their names directly without a
+# per-term resolve. The terms come back with KG (UUID) IRIs; we only need their names.
+MODEL_FOLLOW_LINKS = {"study_targets": {}, "scope": {}, "abstraction_level": {}}
+
 
 def _check_service_status():
     if getattr(settings, "SERVICE_STATUS", "ok") != "ok":
@@ -25,9 +30,11 @@ def _check_service_status():
 def _get_model_by_id_or_alias(model_id, kg_client, release_status, use_cache=False):
     try:
         model_id = UUID(model_id)
-        model_project = Model.from_uuid(str(model_id), kg_client, release_status=release_status, use_cache=use_cache)
+        model_project = Model.from_uuid(str(model_id), kg_client, release_status=release_status,
+                                        use_cache=use_cache, follow_links=MODEL_FOLLOW_LINKS)
     except ValueError:
-        model_project = Model.from_alias(model_id, kg_client, release_status=release_status)
+        model_project = Model.from_alias(model_id, kg_client, release_status=release_status,
+                                         follow_links=MODEL_FOLLOW_LINKS)
     if not model_project:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

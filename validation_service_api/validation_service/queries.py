@@ -48,7 +48,7 @@ def build_model_project_filters(
     if model_scope:
         filter_query["model_scope"] = term_cache["ModelScope"]["names"][model_scope].id
     if abstraction_level:
-        filter_query["abstraction_level"] = term_cache["AbstractionLevel"]["names"][model_scope].id
+        filter_query["abstraction_level"] = term_cache["ModelAbstractionLevel"]["names"][abstraction_level].id
     if author:
         pass
         #filter_query["developers"] = # TODO: need to first query Person, then use the ids here, or we write a custom query

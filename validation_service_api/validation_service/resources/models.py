@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, Query, Path, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from ..auth import User, get_kg_client_for_user_account, get_kg_client_for_service_account
-from ..db import _get_model_instance_by_id, _get_model_by_id_or_alias, _check_service_status
+from ..db import _get_model_instance_by_id, _get_model_by_id_or_alias, _check_service_status, MODEL_FOLLOW_LINKS
 from .. import settings
 from ..data_models import (
     Person,
@@ -333,7 +333,8 @@ async def get_model(
         return ScientificModel.from_kg_query(results.data[0], kg_user_client)
 
     else:
-        obj = omcore.Model.from_id(instance_id, kg_user_client, release_status=release_status)
+        obj = omcore.Model.from_id(instance_id, kg_user_client, release_status=release_status,
+                                   follow_links=MODEL_FOLLOW_LINKS)
         if obj is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail=f"Model with ID '{instance_id}' not found."
@@ -429,7 +430,8 @@ async def update_model(
     kg_service_client = get_kg_client_for_service_account()
 
     # retrieve stored model
-    model_project = omcore.Model.from_uuid(str(model_id), kg_user_client, release_status="any")
+    model_project = omcore.Model.from_uuid(str(model_id), kg_user_client, release_status="any",
+                                           follow_links=MODEL_FOLLOW_LINKS)
     if model_project is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -3,7 +3,6 @@ from unittest.mock import patch, MagicMock
 
 sys.path.append(".")
 
-import fairgraph.openminds.core as omcore
 import validation_service.auth  # import before patching so patch.object can target it
 import validation_service.examples
 
@@ -11,18 +10,15 @@ EXAMPLES = validation_service.examples.EXAMPLES
 
 ID_PREFIX = "https://kg.ebrains.eu/api/instances"
 
-# data_models.py calls get_term_cache() at module level, which calls:
-#   - cls.instances() for 11 of the 12 term classes (pre-defined data, no KG call)
-#   - cls.list(kg_service_client, ...) for omcore.Organization (needs KG)
-# We also mock get_kg_client_for_service_account so KGClient() doesn't fail with
-# missing env vars. Patches are stopped after import; term_cache is already populated.
+# data_models.py builds its term cache from cls.instances() (controlled-term data bundled
+# locally with openMINDS, no KG call). It does create a service-account KGClient at import,
+# so we mock get_kg_client_for_service_account to avoid needing real credentials. The patch
+# is stopped after import; term_cache is already populated by then.
 _patcher_auth = patch.object(
     validation_service.auth, "get_kg_client_for_service_account", return_value=MagicMock()
 )
-_patcher_org = patch.object(omcore.Organization, "list", return_value=[])
 
 _patcher_auth.start()
-_patcher_org.start()
 
 from validation_service.data_models import (  # noqa: E402
     ScientificModel,
@@ -32,7 +28,6 @@ from validation_service.data_models import (  # noqa: E402
 )
 
 _patcher_auth.stop()
-_patcher_org.stop()
 
 
 class MockKGResult:
