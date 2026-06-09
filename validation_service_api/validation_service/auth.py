@@ -178,9 +178,13 @@ class User:
                 )
             )
             for role in ("administrator", "editor"):
+                    # Snapshot the order into a list so the gather() results stay aligned
+                    # with the collab names. Iterating `collab_names` twice (once here, once
+                    # via zip) is unsafe: set iteration order is not preserved across a copy.
+                    candidates = list(collab_names)
                     async with AsyncClient() as client:
-                        found = await asyncio.gather(*[self._has_role(role, collab_name, client) for collab_name in collab_names])
-                        for include, collab_name in zip(found, collab_names.copy()):
+                        found = await asyncio.gather(*[self._has_role(role, collab_name, client) for collab_name in candidates])
+                        for include, collab_name in zip(found, candidates):
                             if include:
                                 self._teams.append(f"collab-{collab_name}-{role}")
                                 collab_names.discard(collab_name)
