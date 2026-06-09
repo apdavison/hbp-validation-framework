@@ -7,6 +7,7 @@ import logging
 import json
 import tempfile
 import hashlib
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse, parse_qs, quote
 
 from dateutil import parser as date_parser
@@ -94,9 +95,21 @@ def ensure_has_timezone(timestamp):
         return timestamp
 
 
+def _fetch_term_class(cls, client):
+    objects = cls.list(client, api="core", release_status="any", size=10000)
+    return cls.__name__, {
+        "names": {obj.name: obj for obj in objects},
+        "ids": {obj.id: obj for obj in objects},
+    }
+
+
 def get_term_cache():
     if len(term_cache) == 0:
-        for cls in (
+        # Resolve the shared service client once, before fanning out, so a
+        # missing-credentials error is raised here (and caught by the caller's
+        # guard) rather than racing inside the worker threads.
+        client = get_kg_client_for_service_account()
+        classes = (
             omterms.Species,  # todo: filter to give a smaller list
             omterms.UBERONParcellation,
             omterms.ModelScope,
@@ -106,15 +119,13 @@ def get_term_cache():
             omterms.DifferenceMeasure,
             omcore.License,
             omcore.ContentType,  # todo: filter to include only types relevant to modelling
-            omcore.Organization,
-            omterms.Service,
-            omterms.ActionStatusType
-        ):
-            objects = cls.list(get_kg_client_for_service_account(), api="core", release_status="any", size=10000)
-            term_cache[cls.__name__] = {
-                "names": {obj.name: obj for obj in objects},
-                "ids": {obj.id: obj for obj in objects}
-            }
+            omterms.ActionStatusType,
+        )
+        # Fetch the term lists in parallel; each .list() is an independent KG read,
+        # so this turns ~sum-of-queries startup time into ~slowest-single-query.
+        with ThreadPoolExecutor(max_workers=len(classes)) as executor:
+            for name, data in executor.map(lambda c: _fetch_term_class(c, client), classes):
+                term_cache[name] = data
     return term_cache
 
 
