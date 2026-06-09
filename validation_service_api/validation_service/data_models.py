@@ -4,6 +4,7 @@ from enum import Enum
 from typing import List, Optional
 from datetime import datetime, timezone, date
 import logging
+import time
 import json
 import tempfile
 import hashlib
@@ -95,12 +96,19 @@ def ensure_has_timezone(timestamp):
         return timestamp
 
 
-def _fetch_term_class(cls, client):
-    objects = cls.list(client, api="core", release_status="any", size=10000)
-    return cls.__name__, {
-        "names": {obj.name: obj for obj in objects},
-        "ids": {obj.id: obj for obj in objects},
-    }
+def _fetch_term_class(cls, client, max_retries=3, retry_delay=10):
+    for attempt in range(max_retries):
+        try:
+            objects = cls.list(client, api="core", release_status="any", size=10000)
+            return cls.__name__, {
+                "names": {obj.name: obj for obj in objects},
+                "ids": {obj.id: obj for obj in objects},
+            }
+        except Exception:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+            else:
+                raise
 
 
 def get_term_cache():
