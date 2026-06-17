@@ -412,7 +412,7 @@ class ModelInstance(BaseModel):
         if instance.is_released(client):
             alternatives.append(f"https://search.kg.ebrains.eu/instances/{instance.uuid}")
         if instance.repository:
-            repository = instance.repository
+            repository = instance.repository.resolve(client, release_status="any")
             source = str(repository.iri)
             if not source.startswith("http"):
                 logger.error(f"Invalid URL: {source}")
